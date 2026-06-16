@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsEnum, IsOptional, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsEnum, IsOptional, ValidateNested, IsEmail, IsBoolean } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -29,6 +29,7 @@ export class CreateUserDto {
     @ApiProperty()
     @IsString({ message: 'El nombre de usuario debe ser texto' })
     @IsNotEmpty({ message: 'El nombre de usuario es obligatorio' })
+    @IsEmail({}, { message: 'El correo electrónico no es válido' })
     username: string;
 
     @ApiProperty()
@@ -44,6 +45,11 @@ export class CreateUserDto {
     @ApiProperty({ enum: ['admin', 'usuario'] })
     @IsEnum(['admin', 'usuario'], { message: 'El rol debe ser "admin" o "usuario"' })
     role: 'admin' | 'usuario';
+
+    @ApiProperty({ required: false, default: true })
+    @IsOptional()
+    @IsBoolean({ message: 'El estado activo debe ser un valor booleano' })
+    activo?: boolean;
 
     @ApiProperty()
     @ValidateNested()

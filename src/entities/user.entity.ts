@@ -44,6 +44,12 @@ export class User {
     @Column({ type: 'jsonb' })
     permissions: UserPermissions;
 
+    @Column({ default: true })
+    activo: boolean;
+
+    @Column({ default: false })
+    eliminado: boolean;
+
     @CreateDateColumn()
     createdAt: Date;
 }
