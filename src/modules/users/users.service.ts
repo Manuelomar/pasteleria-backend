@@ -22,12 +22,8 @@ export class UsersService {
     async create(createUserDto: any): Promise<UserResponseDto> {
         const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
         
-        let mappedRole: 'administrador' | 'cajero' | 'vendedor' | 'supervisor' = 'vendedor';
-        if (createUserDto.role === 'admin' || createUserDto.role === 'administrador') mappedRole = 'administrador';
-        
         const user = this.usersRepository.create({
             ...createUserDto,
-            role: mappedRole,
             password: hashedPassword,
         } as User);
 

@@ -38,8 +38,8 @@ export class User {
     @Column()
     name: string;
 
-    @Column({ default: 'vendedor' })
-    role: 'administrador' | 'cajero' | 'vendedor' | 'supervisor';
+    @Column({ default: 'usuario' })
+    role: 'admin' | 'usuario';
 
     @Column({ type: 'jsonb' })
     permissions: UserPermissions;

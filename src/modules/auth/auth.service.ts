@@ -34,4 +34,11 @@ export class AuthService {
             access_token: this.jwtService.sign(payload),
         };
     }
+
+    async getProfile(username: string): Promise<Omit<User, 'password'>> {
+        const user = await this.usersService.findByUsername(username);
+        if (!user) throw new UnauthorizedException('Usuario no encontrado');
+        const { password, ...result } = user;
+        return result;
+    }
 }

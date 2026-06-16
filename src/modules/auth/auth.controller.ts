@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UnauthorizedException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Request, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { LoginDto } from './dto/login.dto';
@@ -22,5 +22,11 @@ export class AuthController {
             throw new UnauthorizedException('Credenciales inválidas');
         }
         return this.authService.login(user);
+    }
+
+    @Get('me')
+    @ApiOperation({ summary: 'Get current user profile' })
+    async getProfile(@Request() req) {
+        return this.authService.getProfile(req.user.username);
     }
 }
