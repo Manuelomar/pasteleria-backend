@@ -1,12 +1,22 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { VentasService } from './ventas.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { Response } from 'express';
+import { Public } from '../../decorators/public.decorator';
 
 @ApiTags('Ventas')
 @Controller('ventas')
 export class VentasController {
   constructor(private readonly service: VentasService) {}
+
+  @Public()
+  @Get(':id/print')
+  async printInvoice(@Param('id') id: string, @Res() res: Response) {
+    const html = await this.service.getInvoiceHtml(id);
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  }
 
   @Get()
   findAll() {

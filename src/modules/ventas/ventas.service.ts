@@ -167,4 +167,141 @@ export class VentasService {
     await this.repo.delete(id);
     return { deleted: true };
   }
+
+  async getInvoiceHtml(id: string): Promise<string> {
+    const venta = await this.repo.findOne({
+      where: { id },
+      relations: ['cliente', 'items'],
+    });
+    
+    if (!venta) {
+      return `<html><body><h1>Venta no encontrada</h1></body></html>`;
+    }
+    
+    return `<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Factura ${venta.factura}</title>
+  <style>
+    @media print {
+      body {
+        margin: 0;
+        padding: 0;
+      }
+    }
+    body {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12px;
+      line-height: 1.4;
+      width: 280px;
+      margin: 0 auto;
+      padding: 10px;
+      color: #000;
+    }
+    .text-center { text-align: center; }
+    .text-right { text-align: right; }
+    .text-left { text-align: left; }
+    .font-bold { font-weight: bold; }
+    .header { margin-bottom: 15px; }
+    .header h1 { font-size: 16px; margin: 0 0 5px 0; text-transform: uppercase; }
+    .info { margin-bottom: 10px; }
+    .separator { border-top: 1px dashed #000; margin: 8px 0; }
+    table { width: 100%; border-collapse: collapse; }
+    table th, table td { font-size: 12px; padding: 2px 0; }
+    .totals { margin-top: 10px; }
+    .totals table td { padding: 1px 0; }
+    .footer { margin-top: 20px; font-size: 10px; }
+  </style>
+</head>
+<body>
+  <div class="header text-center">
+    <h1>Pastelería Bizcochao</h1>
+    <p>RNC: 01800426387<br>Av. Sanvicente de Paul, Santo Domingo, RD<br>Tel: (809) 433-3384</p>
+  </div>
+  
+  <div class="info">
+    <div><b>Factura:</b> ${venta.factura}</div>
+    <div><b>Fecha:</b> ${new Date(venta.fecha).toLocaleString('es-DO', { timeZone: 'America/Santo_Domingo' })}</div>
+    <div><b>Cliente:</b> ${venta.cliente?.nombre || venta.clienteNombre || 'Consumidor Final'}</div>
+  </div>
+  
+  <div class="separator"></div>
+  
+  <table>
+    <thead>
+      <tr>
+        <th class="text-left">Cant x Prod</th>
+        <th class="text-right">Precio</th>
+        <th class="text-right">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${venta.items.map(item => `
+        <tr>
+          <td>${item.cantidad} x ${item.nombre}</td>
+          <td class="text-right">${Number(item.precio).toFixed(2)}</td>
+          <td class="text-right">${(item.cantidad * item.precio).toFixed(2)}</td>
+        </tr>
+      `).join('')}
+    </tbody>
+  </table>
+  
+  <div class="separator"></div>
+  
+  <div class="totals">
+    <table>
+      <tr>
+        <td>Subtotal:</td>
+        <td class="text-right">${Number(venta.subtotal).toFixed(2)}</td>
+      </tr>
+      ${Number(venta.descuento) > 0 ? `
+      <tr>
+        <td>Descuento:</td>
+        <td class="text-right">-${Number(venta.descuento).toFixed(2)}</td>
+      </tr>` : ''}
+      <tr>
+        <td>ITBIS (18%):</td>
+        <td class="text-right">${Number(venta.impuesto).toFixed(2)}</td>
+      </tr>
+      <tr class="font-bold">
+        <td>Total:</td>
+        <td class="text-right">RD$ ${Number(venta.total).toFixed(2)}</td>
+      </tr>
+      <tr class="separator-row"><td colspan="2"><div class="separator"></div></td></tr>
+      <tr>
+        <td>Método Pago:</td>
+        <td class="text-right">${venta.metodoPago.toUpperCase()}</td>
+      </tr>
+      <tr>
+        <td>Estado Pago:</td>
+        <td class="text-right">${venta.estadoPago.toUpperCase()}</td>
+      </tr>
+      <tr>
+        <td>Monto Recibido:</td>
+        <td class="text-right">${Number(venta.montoPagado).toFixed(2)}</td>
+      </tr>
+      ${Number(venta.balance) > 0 ? `
+      <tr class="font-bold">
+        <td>Balance Pendiente:</td>
+        <td class="text-right">RD$ ${Number(venta.balance).toFixed(2)}</td>
+      </tr>` : ''}
+    </table>
+  </div>
+  
+  <div class="footer text-center">
+    <p>¡Gracias por su compra!<br>Favor conservar su factura.<br>Dulce o Salado, siempre el mejor sabor.</p>
+  </div>
+
+  <script>
+    window.onload = function() {
+      window.print();
+      setTimeout(function() {
+        window.close();
+      }, 1000);
+    };
+  </script>
+</body>
+</html>`;
+  }
 }
