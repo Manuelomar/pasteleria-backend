@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query } from '@nestjs/common';
 import { EntregasService, CreateEntregaDto } from './entregas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
@@ -17,8 +17,8 @@ export class EntregasController {
     }
 
     @Get()
-    findAll(@Request() req) {
-        return this.entregasService.findAll(req.user);
+    findAll(@Request() req, @Query('filtro') filtro?: string) {
+        return this.entregasService.findAll(req.user, filtro);
     }
 
     @Patch(':id/estado-entrega')
