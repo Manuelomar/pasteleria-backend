@@ -12,6 +12,7 @@ import { VentasModule } from './modules/ventas/ventas.module';
 import { MovimientosModule } from './modules/movimientos/movimientos.module';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard';
 import { SeedService } from './seed.service';
+import { EntregasModule } from './modules/entregas/entregas.module';
 
 @Module({
     imports: [
@@ -41,6 +42,7 @@ import { SeedService } from './seed.service';
         ClientesModule,
         VentasModule,
         MovimientosModule,
+        EntregasModule,
     ],
     controllers: [],
     providers: [

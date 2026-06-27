@@ -42,9 +42,9 @@ export class CreateUserDto {
     @IsNotEmpty({ message: 'El nombre es obligatorio' })
     name: string;
 
-    @ApiProperty({ enum: ['admin', 'usuario'] })
-    @IsEnum(['admin', 'usuario'], { message: 'El rol debe ser "admin" o "usuario"' })
-    role: 'admin' | 'usuario';
+    @ApiProperty({ enum: ['admin', 'usuario', 'proveedor'] })
+    @IsEnum(['admin', 'usuario', 'proveedor'], { message: 'El rol debe ser "admin", "usuario" o "proveedor"' })
+    role: 'admin' | 'usuario' | 'proveedor';
 
     @ApiProperty({ required: false, default: true })
     @IsOptional()

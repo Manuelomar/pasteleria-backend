@@ -11,8 +11,12 @@ export class ProductosService {
     private readonly repo: Repository<Producto>,
   ) {}
 
-  findAll() {
-    return this.repo.find();
+  findAll(user?: any) {
+    const query = this.repo.createQueryBuilder('producto');
+    if (user && user.role === 'proveedor') {
+      query.where('producto.proveedorId = :proveedorId', { proveedorId: user.id });
+    }
+    return query.getMany();
   }
 
   async findAllPaged(
@@ -20,12 +24,24 @@ export class ProductosService {
     search?: string,
     tipo?: string,
     disponible?: boolean,
+    user?: any,
+    proveedorId?: string
   ): Promise<PaginatedResponseDto<Producto>> {
     const pageVal = Number(paginationDto.pageNumber || 1);
     const sizeVal = Number(paginationDto.pageSize || 10);
     const skip = (pageVal - 1) * sizeVal;
 
     const queryBuilder = this.repo.createQueryBuilder('producto');
+
+    if (user && user.role === 'proveedor') {
+      queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId: user.id });
+    } else if (proveedorId) {
+      if (proveedorId === 'internos') {
+        queryBuilder.andWhere('producto.proveedorId IS NULL');
+      } else {
+        queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId });
+      }
+    }
 
     if (search) {
       queryBuilder.andWhere(
