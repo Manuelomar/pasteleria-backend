@@ -177,6 +177,7 @@ export class VentasService {
     if (!venta) {
       return `<html><body><h1>Venta no encontrada</h1></body></html>`;
     }
+    const formatCurrency = (n: number) => 'RD$ ' + new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
     
     return `<!DOCTYPE html>
 <html lang="es">
@@ -222,7 +223,17 @@ export class VentasService {
   
   <div class="info">
     <div><b>Factura:</b> ${venta.factura}</div>
-    <div><b>Fecha:</b> ${new Date(venta.fecha).toLocaleString('es-DO', { timeZone: 'America/Santo_Domingo' })}</div>
+    <div><b>Fecha:</b> ${
+      (() => {
+        const d = new Date(venta.fecha);
+        const day = d.getDate().toString().padStart(2, '0');
+        const month = (d.getMonth() + 1).toString().padStart(2, '0');
+        const year = d.getFullYear();
+        const hours = d.getHours().toString().padStart(2, '0');
+        const minutes = d.getMinutes().toString().padStart(2, '0');
+        return `${day}/${month}/${year} ${hours}:${minutes}`;
+      })()
+    }</div>
     <div><b>Cliente:</b> ${venta.cliente?.nombre || venta.clienteNombre || 'Consumidor Final'}</div>
   </div>
   
@@ -240,8 +251,8 @@ export class VentasService {
       ${venta.items.map(item => `
         <tr>
           <td>${item.cantidad} x ${item.nombre}</td>
-          <td class="text-right">${Number(item.precio).toFixed(2)}</td>
-          <td class="text-right">${(item.cantidad * item.precio).toFixed(2)}</td>
+          <td class="text-right">${formatCurrency(Number(item.precio))}</td>
+          <td class="text-right">${formatCurrency(item.cantidad * Number(item.precio))}</td>
         </tr>
       `).join('')}
     </tbody>
@@ -253,20 +264,20 @@ export class VentasService {
     <table>
       <tr>
         <td>Subtotal:</td>
-        <td class="text-right">${Number(venta.subtotal).toFixed(2)}</td>
+        <td class="text-right">${formatCurrency(Number(venta.subtotal))}</td>
       </tr>
       ${Number(venta.descuento) > 0 ? `
       <tr>
         <td>Descuento:</td>
-        <td class="text-right">-${Number(venta.descuento).toFixed(2)}</td>
+        <td class="text-right">-${formatCurrency(Number(venta.descuento))}</td>
       </tr>` : ''}
       <tr>
         <td>ITBIS (18%):</td>
-        <td class="text-right">${Number(venta.impuesto).toFixed(2)}</td>
+        <td class="text-right">${formatCurrency(Number(venta.impuesto))}</td>
       </tr>
       <tr class="font-bold">
         <td>Total:</td>
-        <td class="text-right">RD$ ${Number(venta.total).toFixed(2)}</td>
+        <td class="text-right">${formatCurrency(Number(venta.total))}</td>
       </tr>
       <tr class="separator-row"><td colspan="2"><div class="separator"></div></td></tr>
       <tr>
@@ -279,7 +290,7 @@ export class VentasService {
       </tr>
       <tr>
         <td>Monto Recibido:</td>
-        <td class="text-right">${Number(venta.montoPagado).toFixed(2)}</td>
+        <td class="text-right">${formatCurrency(Number(venta.montoPagado))}</td>
       </tr>
       ${Number(venta.balance) > 0 ? `
       <tr class="font-bold">
@@ -305,3 +316,4 @@ export class VentasService {
 </html>`;
   }
 }
+

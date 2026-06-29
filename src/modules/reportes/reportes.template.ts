@@ -116,13 +116,13 @@ export const reporteProveedorTemplate = `
     <div class="container">
         <div class="header">
             <h1>Reporte de Entregas de Proveedores</h1>
-            <p>Generado el <%= new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' }) %></p>
+            <p>Generado el <%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes()) })(new Date()) %></p>
         </div>
 
         <div class="filters-info">
             <strong>Filtros aplicados:</strong><br>
-            Fecha Inicio: <%= filtros.fechaInicio ? new Date(filtros.fechaInicio).toLocaleDateString() : 'N/A' %> | 
-            Fecha Fin: <%= filtros.fechaFin ? new Date(filtros.fechaFin).toLocaleDateString() : 'N/A' %><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaInicio)) : 'N/A' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaFin)) : 'N/A' %><br>
             Estados: 
             <%= filtros.entregado ? '[x] Entregado ' : '' %>
             <%= filtros.noPagado ? '[x] No Pagado ' : '' %>
@@ -138,7 +138,8 @@ export const reporteProveedorTemplate = `
                         <th>Proveedor</th>
                         <th>Estado Entrega</th>
                         <th>Estado Pago</th>
-                        <th>Items</th>
+                        <th>Producto</th>
+                        <th class="text-center">Cantidad</th>
                         <th class="text-right">Total</th>
                     </tr>
                 </thead>
@@ -146,38 +147,43 @@ export const reporteProveedorTemplate = `
                     <% let granTotal = 0; %>
                     <% entregas.forEach(function(entrega) { %>
                         <% granTotal += Number(entrega.totalCosto); %>
+                        <% const rowspan = Math.max(1, entrega.items ? entrega.items.length : 1); %>
                         <tr>
-                            <td><%= new Date(entrega.createdAt).toLocaleDateString() %></td>
-                            <td><%= entrega.proveedor ? entrega.proveedor.nombre : 'Desconocido' %></td>
-                            <td>
+                            <td rowspan="<%= rowspan %>"><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(entrega.createdAt)) %></td>
+                            <td rowspan="<%= rowspan %>"><%= entrega.proveedor ? entrega.proveedor.name : 'Desconocido' %></td>
+                            <td rowspan="<%= rowspan %>">
                                 <span class="status status-<%= entrega.estadoEntrega %>">
                                     <%= entrega.estadoEntrega === 'entregada' ? 'Entregada' : 'En Espera' %>
                                 </span>
                             </td>
-                            <td>
+                            <td rowspan="<%= rowspan %>">
                                 <span class="status status-<%= entrega.estadoPago %>">
                                     <%= entrega.estadoPago === 'pagado' ? 'Pagado' : 'Pendiente' %>
                                 </span>
                             </td>
-                            <td>
-                                <% if (entrega.items && entrega.items.length > 0) { %>
-                                    <ul class="items-list">
-                                        <% entrega.items.forEach(function(item) { %>
-                                            <li><%= item.cantidad %>x <%= item.producto ? item.producto.nombre : 'Producto' %></li>
-                                        <% }); %>
-                                    </ul>
-                                <% } else { %>
-                                    -
-                                <% } %>
-                            </td>
-                            <td class="text-right">$<%= Number(entrega.totalCosto).toFixed(2) %></td>
+                            <% if (entrega.items && entrega.items.length > 0) { %>
+                                <td><%= entrega.items[0].producto ? entrega.items[0].producto.nombre : 'Producto' %></td>
+                                <td class="text-center"><%= entrega.items[0].cantidad %></td>
+                            <% } else { %>
+                                <td>-</td>
+                                <td class="text-center">-</td>
+                            <% } %>
+                            <td rowspan="<%= rowspan %>" class="text-right"><%= 'RD$ ' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(Number(entrega.totalCosto)) %></td>
                         </tr>
+                        <% if (entrega.items && entrega.items.length > 1) { %>
+                            <% for (let i = 1; i < entrega.items.length; i++) { %>
+                                <tr>
+                                    <td><%= entrega.items[i].producto ? entrega.items[i].producto.nombre : 'Producto' %></td>
+                                    <td class="text-center"><%= entrega.items[i].cantidad %></td>
+                                </tr>
+                            <% } %>
+                        <% } %>
                     <% }); %>
                 </tbody>
                 <tfoot>
                     <tr class="total-row">
-                        <td colspan="5" class="text-right">Total General:</td>
-                        <td class="text-right">$<%= granTotal.toFixed(2) %></td>
+                        <td colspan="6" class="text-right">Total General:</td>
+                        <td class="text-right"><%= 'RD$ ' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(granTotal) %></td>
                     </tr>
                 </tfoot>
             </table>
