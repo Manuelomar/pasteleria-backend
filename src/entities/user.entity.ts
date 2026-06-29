@@ -22,6 +22,9 @@ export class UserPermissions {
     @ApiProperty() estadoCuenta: boolean;
     @ApiProperty() estadoCuenta_exportar: boolean;
     @ApiProperty() estadoCuenta_filtros: boolean;
+    @ApiProperty() entregas: boolean;
+    @ApiProperty() entregas_crear: boolean;
+    @ApiProperty() entregas_gestionar: boolean; // para admin: marcar como entregada o pagada
 }
 
 @Entity('users')
@@ -39,7 +42,7 @@ export class User {
     name: string;
 
     @Column({ default: 'usuario' })
-    role: 'admin' | 'usuario';
+    role: 'admin' | 'usuario' | 'proveedor';
 
     @Column({ type: 'jsonb' })
     permissions: UserPermissions;

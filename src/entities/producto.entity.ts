@@ -16,6 +16,12 @@ export class Producto {
     @Column({ type: 'enum', enum: ['dulce', 'salado', 'bebida'], default: 'dulce' })
     tipo: TipoProducto;
 
+    @Column({ nullable: true })
+    proveedorId: string;
+
+    @Column('decimal', { precision: 10, scale: 2, default: 0 })
+    precioCosto: number;
+
     @Column('decimal', { precision: 10, scale: 2 })
     precio: number;
 
@@ -33,6 +39,9 @@ export class Producto {
 
     @Column({ type: 'int', default: 0 })
     cantidad: number;
+
+    @Column({ type: 'jsonb', nullable: true, default: [] })
+    historialCostos: number[];
 
     @CreateDateColumn()
     createdAt: Date;
