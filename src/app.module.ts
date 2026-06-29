@@ -13,6 +13,7 @@ import { MovimientosModule } from './modules/movimientos/movimientos.module';
 import { JwtAuthGuard } from './modules/auth/jwt-auth.guard';
 import { SeedService } from './seed.service';
 import { EntregasModule } from './modules/entregas/entregas.module';
+import { ReportesModule } from './modules/reportes/reportes.module';
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import { EntregasModule } from './modules/entregas/entregas.module';
         VentasModule,
         MovimientosModule,
         EntregasModule,
+        ReportesModule,
     ],
     controllers: [],
     providers: [
@@ -54,4 +56,3 @@ import { EntregasModule } from './modules/entregas/entregas.module';
     ],
 })
 export class AppModule { }
-
