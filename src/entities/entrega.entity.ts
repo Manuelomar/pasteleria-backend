@@ -40,4 +40,7 @@ export class Entrega {
 
     @UpdateDateColumn()
     updatedAt: Date;
+
+    @Column({ default: false })
+    agregadoAlStock: boolean;
 }

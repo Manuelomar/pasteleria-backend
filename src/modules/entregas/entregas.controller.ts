@@ -36,4 +36,9 @@ export class EntregasController {
     ) {
         return this.entregasService.updateEstadoPago(id, estado);
     }
+
+    @Post(':id/add-to-stock')
+    addToStock(@Param('id') id: string) {
+        return this.entregasService.addToStock(id);
+    }
 }

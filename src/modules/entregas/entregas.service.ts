@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, IsNull } from 'typeorm';
 import { Entrega, EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { Producto } from '../../entities/producto.entity';
 
@@ -121,6 +121,57 @@ export class EntregasService {
         if (!entrega) throw new NotFoundException('Entrega no encontrada');
         
         entrega.estadoPago = estado;
+        return this.entregaRepository.save(entrega);
+    }
+
+    async addToStock(id: string) {
+        const entrega = await this.entregaRepository.findOne({
+            where: { id },
+            relations: ['items', 'items.producto']
+        });
+        
+        if (!entrega) throw new NotFoundException('Entrega no encontrada');
+        if (entrega.estadoEntrega !== 'entregada') {
+            throw new BadRequestException('La entrega debe estar en estado Entregada para añadir al stock');
+        }
+        if (entrega.agregadoAlStock) {
+            throw new BadRequestException('Esta entrega ya fue agregada al stock');
+        }
+
+        for (const item of entrega.items) {
+            const prodProv = item.producto;
+            if (!prodProv) continue;
+
+            // Find internal product by name
+            let internalProd = await this.productoRepository.findOne({
+                where: { nombre: prodProv.nombre, proveedorId: IsNull() }
+            });
+
+            if (internalProd) {
+                internalProd.cantidad += item.cantidad;
+                await this.productoRepository.save(internalProd);
+            } else {
+                internalProd = this.productoRepository.create({
+                    nombre: prodProv.nombre,
+                    categoria: prodProv.categoria,
+                    tipo: prodProv.tipo,
+                    precioCosto: prodProv.precioCosto,
+                    precio: prodProv.precio,
+                    descripcion: prodProv.descripcion,
+                    imagen: prodProv.imagen,
+                    disponible: true,
+                    cantidad: item.cantidad,
+                    proveedorId: null
+                });
+                await this.productoRepository.save(internalProd);
+            }
+
+            // Deduct from provider
+            prodProv.cantidad = Math.max(0, prodProv.cantidad - item.cantidad);
+            await this.productoRepository.save(prodProv);
+        }
+
+        entrega.agregadoAlStock = true;
         return this.entregaRepository.save(entrega);
     }
 }
