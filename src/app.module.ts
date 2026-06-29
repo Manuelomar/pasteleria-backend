@@ -3,6 +3,8 @@ import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { PassportModule } from '@nestjs/passport';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { User } from './entities/user.entity';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
@@ -20,6 +22,10 @@ import { ReportesModule } from './modules/reportes/reportes.module';
         ConfigModule.forRoot({
             isGlobal: true,
             envFilePath: ['.env.local', '.env'],
+        }),
+        ServeStaticModule.forRoot({
+            rootPath: join(__dirname, '..', 'public'),
+            serveRoot: '/',
         }),
         PassportModule,
         TypeOrmModule.forRootAsync({
