@@ -149,6 +149,16 @@ export class EntregasService {
 
             if (internalProd) {
                 internalProd.cantidad += item.cantidad;
+                
+                // Actualizar historial de costos si el costo cambió
+                if (Number(internalProd.precioCosto) !== Number(prodProv.precioCosto)) {
+                    if (!internalProd.historialCostos) {
+                        internalProd.historialCostos = [];
+                    }
+                    internalProd.historialCostos.push(Number(internalProd.precioCosto));
+                    internalProd.precioCosto = prodProv.precioCosto;
+                }
+
                 await this.productoRepository.save(internalProd);
             } else {
                 internalProd = this.productoRepository.create({

@@ -40,6 +40,9 @@ export class Producto {
     @Column({ type: 'int', default: 0 })
     cantidad: number;
 
+    @Column({ type: 'jsonb', nullable: true, default: [] })
+    historialCostos: number[];
+
     @CreateDateColumn()
     createdAt: Date;
 
