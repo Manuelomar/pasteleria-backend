@@ -20,7 +20,6 @@ export const createNestServer = async (expressInstance: express.Express) => {
     origin: true,
     credentials: true,
   });
-  app.setGlobalPrefix('api');
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
   app.useGlobalInterceptors(new TransformInterceptor());
   app.useGlobalFilters(new AllExceptionsFilter());
@@ -34,7 +33,7 @@ export const createNestServer = async (expressInstance: express.Express) => {
   
   // Swagger will be served at /api/docs (Vercel routes everything under api folder as /api/...)
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('docs', app, document);
 
   await app.init();
   return app;
