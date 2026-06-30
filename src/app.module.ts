@@ -38,7 +38,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
                 username: configService.get<string>('DB_USERNAME', 'postgres'),
                 password: configService.get<string>('DB_PASSWORD', 'postgres'),
                 database: configService.get<string>('DB_DATABASE', 'pasteleria'),
-                ssl: false,
+                ssl: configService.get<string>('DB_HOST', 'localhost') !== 'localhost' ? { rejectUnauthorized: false } : false,
                 autoLoadEntities: true,
                 synchronize: true, // DEV ONLY
             }),
