@@ -1,13 +1,19 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { UsersService } from './modules/users/users.service';
+import { CategoriasService } from './modules/categorias/categorias.service';
+import { TipoProducto } from './entities/categoria.entity';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
 export class SeedService implements OnApplicationBootstrap {
-    constructor(private readonly usersService: UsersService) { }
+    constructor(
+        private readonly usersService: UsersService,
+        private readonly categoriasService: CategoriasService,
+    ) { }
 
     async onApplicationBootstrap() {
         await this.seedDefaultUser();
+        await this.seedCategorias();
     }
 
     private async seedDefaultUser() {
@@ -57,6 +63,33 @@ export class SeedService implements OnApplicationBootstrap {
             // Update password of existing ManuelOmar
             await this.usersService.update(existing.id, { password: password });
             console.log('Default user updated: ManuelOmar');
+        }
+    }
+
+    private async seedCategorias() {
+        const defaultCategorias: { nombre: string; tipo: TipoProducto }[] = [
+            // { nombre: 'Pasteles', tipo: 'dulce' },
+            // { nombre: 'Bizcochos', tipo: 'dulce' },
+            { nombre: 'Tres leches', tipo: 'dulce' },
+            { nombre: 'Cuatro leches', tipo: 'dulce' },
+            { nombre: 'Cuatro leche de chocolate', tipo: 'dulce' },
+            // { nombre: 'Galletas', tipo: 'dulce' },
+            { nombre: 'Brownies', tipo: 'dulce' },
+            // { nombre: 'Postres', tipo: 'dulce' },
+            { nombre: 'Empanadas', tipo: 'salado' },
+            { nombre: 'Quipes', tipo: 'salado' },
+            { nombre: 'Croquetas', tipo: 'salado' },
+            { nombre: 'Café', tipo: 'bebida' },
+            { nombre: 'Batidas', tipo: 'bebida' },
+            { nombre: 'Malteadas', tipo: 'bebida' },
+        ];
+
+        for (const cat of defaultCategorias) {
+            const existing = await this.categoriasService.findByName(cat.nombre);
+            if (!existing) {
+                await this.categoriasService.create(cat);
+                console.log(`Default category created: ${cat.nombre} (${cat.tipo})`);
+            }
         }
     }
 }
