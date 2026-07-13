@@ -4,7 +4,7 @@ import { Repository } from 'typeorm';
 import { Entrega } from '../../entities/entrega.entity';
 import { Venta } from '../../entities/venta.entity';
 import * as ejs from 'ejs';
-import { reporteProveedorTemplate, reporteVentasTemplate } from './reportes.template';
+import { reporteProveedorTemplate, reporteVentasTemplate, reporteGananciasTemplate } from './reportes.template';
 
 @Injectable()
 export class ReportesService {
@@ -92,6 +92,34 @@ export class ReportesService {
     const html = ejs.render(reporteVentasTemplate, {
       ventas,
       filtros: { fechaInicio, fechaFin, metodosPago }
+    });
+
+    return html;
+  }
+  async generarReporteGanancias(
+    fechaInicio?: string,
+    fechaFin?: string,
+  ): Promise<string> {
+    const qb = this.ventaRepository.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.items', 'items')
+      .leftJoinAndSelect('items.producto', 'producto');
+
+    if (fechaInicio) {
+      qb.andWhere('venta.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
+    }
+    if (fechaFin) {
+      const dateFin = new Date(fechaFin);
+      dateFin.setHours(23, 59, 59, 999);
+      qb.andWhere('venta.createdAt <= :fechaFin', { fechaFin: dateFin });
+    }
+
+    qb.orderBy('venta.createdAt', 'DESC');
+
+    const ventas = await qb.getMany();
+
+    const html = ejs.render(reporteGananciasTemplate, {
+      ventas,
+      filtros: { fechaInicio, fechaFin }
     });
 
     return html;

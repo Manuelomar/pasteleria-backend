@@ -135,6 +135,23 @@ export class VentasService {
     if (!data.fecha) {
       data.fecha = new Date();
     }
+    
+    // Poblar precioCosto antes de guardar
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        if (item.productoId) {
+          const producto = await this.productoRepo.findOne({ where: { id: item.productoId } });
+          if (producto) {
+            item.precioCosto = Number(producto.precioCosto || 0);
+          } else {
+            item.precioCosto = 0;
+          }
+        } else {
+          item.precioCosto = 0;
+        }
+      }
+    }
+
     const entity = this.repo.create(data);
     const savedVenta = await this.repo.save(entity);
 

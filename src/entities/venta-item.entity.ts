@@ -29,4 +29,7 @@ export class VentaItem {
 
     @Column('int')
     cantidad: number;
+
+    @Column('decimal', { precision: 10, scale: 2, default: 0 })
+    precioCosto: number;
 }
