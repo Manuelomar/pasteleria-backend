@@ -2,14 +2,17 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Entrega } from '../../entities/entrega.entity';
+import { Venta } from '../../entities/venta.entity';
 import * as ejs from 'ejs';
-import { reporteProveedorTemplate } from './reportes.template';
+import { reporteProveedorTemplate, reporteVentasTemplate } from './reportes.template';
 
 @Injectable()
 export class ReportesService {
   constructor(
     @InjectRepository(Entrega)
     private entregaRepository: Repository<Entrega>,
+    @InjectRepository(Venta)
+    private ventaRepository: Repository<Venta>,
   ) {}
 
   async generarReporteProveedor(
@@ -59,4 +62,39 @@ export class ReportesService {
 
     return html;
   }
+
+  async generarReporteVentas(
+    fechaInicio?: string,
+    fechaFin?: string,
+    metodosPago?: string[],
+  ): Promise<string> {
+    const qb = this.ventaRepository.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.items', 'items')
+      .leftJoinAndSelect('items.producto', 'producto');
+
+    if (fechaInicio) {
+      qb.andWhere('venta.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
+    }
+    if (fechaFin) {
+      const dateFin = new Date(fechaFin);
+      dateFin.setHours(23, 59, 59, 999);
+      qb.andWhere('venta.createdAt <= :fechaFin', { fechaFin: dateFin });
+    }
+
+    if (metodosPago && metodosPago.length > 0) {
+      qb.andWhere('venta.metodoPago IN (:...metodosPago)', { metodosPago });
+    }
+
+    qb.orderBy('venta.createdAt', 'DESC');
+
+    const ventas = await qb.getMany();
+
+    const html = ejs.render(reporteVentasTemplate, {
+      ventas,
+      filtros: { fechaInicio, fechaFin, metodosPago }
+    });
+
+    return html;
+  }
 }
+

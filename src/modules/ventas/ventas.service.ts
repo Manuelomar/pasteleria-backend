@@ -185,10 +185,13 @@ export class VentasService {
   <meta charset="UTF-8">
   <title>Factura ${venta.factura}</title>
   <style>
+    @page {
+      margin: 0;
+    }
     @media print {
       body {
         margin: 0;
-        padding: 0;
+        padding: 5mm;
       }
     }
     body {
@@ -303,15 +306,6 @@ export class VentasService {
   <div class="footer text-center">
     <p>¡Gracias por su compra!<br>Favor conservar su factura.<br>Dulce o Salado, siempre el mejor sabor.</p>
   </div>
-
-  <script>
-    window.onload = function() {
-      window.print();
-      setTimeout(function() {
-        window.close();
-      }, 1000);
-    };
-  </script>
 </body>
 </html>`;
   }
