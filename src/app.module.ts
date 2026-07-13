@@ -25,7 +25,7 @@ import { CategoriasModule } from './modules/categorias/categorias.module';
             envFilePath: ['.env.local', '.env'],
         }),
         ServeStaticModule.forRoot({
-            rootPath: join(__dirname, '..', 'public'),
+            rootPath: join(process.cwd(), 'public'),
             serveRoot: '/',
         }),
         PassportModule,
