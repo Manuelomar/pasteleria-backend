@@ -2,6 +2,7 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { UsersService } from './modules/users/users.service';
 import { CategoriasService } from './modules/categorias/categorias.service';
 import { TipoProducto } from './entities/categoria.entity';
+import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 
 @Injectable()
@@ -9,6 +10,7 @@ export class SeedService implements OnApplicationBootstrap {
     constructor(
         private readonly usersService: UsersService,
         private readonly categoriasService: CategoriasService,
+        private readonly dataSource: DataSource,
     ) { }
 
     async onApplicationBootstrap() {
@@ -68,20 +70,11 @@ export class SeedService implements OnApplicationBootstrap {
 
     private async seedCategorias() {
         const defaultCategorias: { nombre: string; tipo: TipoProducto }[] = [
-            // { nombre: 'Pasteles', tipo: 'dulce' },
-            // { nombre: 'Bizcochos', tipo: 'dulce' },
-            { nombre: 'Tres leches', tipo: 'dulce' },
-            { nombre: 'Cuatro leches', tipo: 'dulce' },
-            { nombre: 'Cuatro leche de chocolate', tipo: 'dulce' },
-            // { nombre: 'Galletas', tipo: 'dulce' },
-            { nombre: 'Brownies', tipo: 'dulce' },
-            // { nombre: 'Postres', tipo: 'dulce' },
-            { nombre: 'Empanadas', tipo: 'salado' },
-            { nombre: 'Quipes', tipo: 'salado' },
-            { nombre: 'Croquetas', tipo: 'salado' },
-            { nombre: 'Café', tipo: 'bebida' },
-            { nombre: 'Batidas', tipo: 'bebida' },
-            { nombre: 'Malteadas', tipo: 'bebida' },
+            { nombre: 'Postres', tipo: 'dulce' },
+            { nombre: 'Salados', tipo: 'salado' },
+            { nombre: 'Bebidas', tipo: 'bebida' },
+            { nombre: 'Bizcochos', tipo: 'dulce' },
+            { nombre: 'Combos', tipo: 'dulce' },
         ];
 
         for (const cat of defaultCategorias) {
@@ -90,6 +83,20 @@ export class SeedService implements OnApplicationBootstrap {
                 await this.categoriasService.create(cat);
                 console.log(`Default category created: ${cat.nombre} (${cat.tipo})`);
             }
+        }
+
+        // Migrate old products to new categories
+        try {
+            await this.dataSource.query(`UPDATE productos SET categoria = 'Bebidas' WHERE categoria IN ('Batidas', 'Malteadas', 'Café')`);
+            await this.dataSource.query(`UPDATE productos SET categoria = 'Bizcochos' WHERE categoria IN ('Pasteles')`);
+            await this.dataSource.query(`UPDATE productos SET categoria = 'Postres' WHERE categoria IN ('Brownies', 'Tres leches', 'Cuatro leches', 'Cuatro leche de chocolate', 'Galletas')`);
+            await this.dataSource.query(`UPDATE productos SET categoria = 'Salados' WHERE categoria IN ('Empanadas', 'Croquetas', 'Quipes')`);
+            
+            // Delete ALL old categories from the database except the 5 official ones
+            await this.dataSource.query(`DELETE FROM categorias WHERE nombre NOT IN ('Postres', 'Salados', 'Bebidas', 'Bizcochos', 'Combos')`);
+            console.log('Old categories migrated and cleaned up successfully.');
+        } catch (error) {
+            console.log('Error migrating old categories:', error);
         }
     }
 }
