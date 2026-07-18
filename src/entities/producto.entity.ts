@@ -25,6 +25,9 @@ export class Producto {
     @Column('decimal', { precision: 10, scale: 2 })
     precio: number;
 
+    @Column('decimal', { precision: 10, scale: 2, default: 0 })
+    precioUber: number;
+
     @Column({ default: true })
     disponible: boolean;
 

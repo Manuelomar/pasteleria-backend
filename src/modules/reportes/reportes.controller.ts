@@ -32,4 +32,37 @@ export class ReportesController {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   }
+
+  @Get('ventas')
+  async getReporteVentas(
+    @Query('fechaInicio') fechaInicio: string,
+    @Query('fechaFin') fechaFin: string,
+    @Query('metodosPago') metodosPagoStr: string,
+    @Res() res: Response,
+  ) {
+    const metodosPago = metodosPagoStr ? metodosPagoStr.split(',') : undefined;
+
+    const html = await this.reportesService.generarReporteVentas(
+      fechaInicio,
+      fechaFin,
+      metodosPago,
+    );
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  }
+  @Get('ganancias')
+  async getReporteGanancias(
+    @Query('fechaInicio') fechaInicio: string,
+    @Query('fechaFin') fechaFin: string,
+    @Res() res: Response,
+  ) {
+    const html = await this.reportesService.generarReporteGanancias(
+      fechaInicio,
+      fechaFin,
+    );
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  }
 }

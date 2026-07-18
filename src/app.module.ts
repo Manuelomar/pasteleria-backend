@@ -16,6 +16,7 @@ import { JwtAuthGuard } from './modules/auth/jwt-auth.guard';
 import { SeedService } from './seed.service';
 import { EntregasModule } from './modules/entregas/entregas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
+import { CategoriasModule } from './modules/categorias/categorias.module';
 
 @Module({
     imports: [
@@ -24,7 +25,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
             envFilePath: ['.env.local', '.env'],
         }),
         ServeStaticModule.forRoot({
-            rootPath: join(__dirname, '..', 'public'),
+            rootPath: join(process.cwd(), 'public'),
             serveRoot: '/',
         }),
         PassportModule,
@@ -38,7 +39,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
                 username: configService.get<string>('DB_USERNAME', 'postgres'),
                 password: configService.get<string>('DB_PASSWORD', 'postgres'),
                 database: configService.get<string>('DB_DATABASE', 'pasteleria'),
-                ssl: configService.get<string>('DB_HOST', 'localhost') !== 'localhost' ? { rejectUnauthorized: false } : false,
+                ssl: (configService.get<string>('DB_HOST') !== 'localhost' && configService.get<string>('DB_HOST') !== 'db') ? { rejectUnauthorized: false } : false,
                 autoLoadEntities: true,
                 synchronize: true, // DEV ONLY
             }),
@@ -51,6 +52,7 @@ import { ReportesModule } from './modules/reportes/reportes.module';
         MovimientosModule,
         EntregasModule,
         ReportesModule,
+        CategoriasModule,
     ],
     controllers: [],
     providers: [

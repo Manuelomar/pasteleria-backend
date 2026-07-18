@@ -21,6 +21,17 @@ export class VentasService {
     return this.repo.find({ order: { fecha: 'DESC' } });
   }
 
+  getPendientes() {
+    return this.repo.find({
+      where: [
+        { estadoPago: 'pendiente' },
+        { estadoPago: 'parcial' }
+      ],
+      relations: ['cliente', 'items'],
+      order: { fecha: 'ASC' },
+    });
+  }
+
   async findAllPaged(paginationDto: PaginationDto, fecha?: string): Promise<PaginatedResponseDto<Venta>> {
     const { pageNumber = 1, pageSize = 10 } = paginationDto;
     const skip = (pageNumber - 1) * pageSize;
@@ -135,6 +146,23 @@ export class VentasService {
     if (!data.fecha) {
       data.fecha = new Date();
     }
+    
+    // Poblar precioCosto antes de guardar
+    if (data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        if (item.productoId) {
+          const producto = await this.productoRepo.findOne({ where: { id: item.productoId } });
+          if (producto) {
+            item.precioCosto = Number(producto.precioCosto || 0);
+          } else {
+            item.precioCosto = 0;
+          }
+        } else {
+          item.precioCosto = 0;
+        }
+      }
+    }
+
     const entity = this.repo.create(data);
     const savedVenta = await this.repo.save(entity);
 
@@ -185,10 +213,13 @@ export class VentasService {
   <meta charset="UTF-8">
   <title>Factura ${venta.factura}</title>
   <style>
+    @page {
+      margin: 0;
+    }
     @media print {
       body {
         margin: 0;
-        padding: 0;
+        padding: 5mm;
       }
     }
     body {
@@ -225,13 +256,16 @@ export class VentasService {
     <div><b>Factura:</b> ${venta.factura}</div>
     <div><b>Fecha:</b> ${
       (() => {
-        const d = new Date(venta.fecha);
-        const day = d.getDate().toString().padStart(2, '0');
-        const month = (d.getMonth() + 1).toString().padStart(2, '0');
-        const year = d.getFullYear();
-        const hours = d.getHours().toString().padStart(2, '0');
-        const minutes = d.getMinutes().toString().padStart(2, '0');
-        return `${day}/${month}/${year} ${hours}:${minutes}`;
+        const d = new Date(venta.updatedAt || venta.fecha);
+        return d.toLocaleString('es-DO', { 
+          timeZone: 'America/Santo_Domingo', 
+          day: '2-digit', 
+          month: '2-digit', 
+          year: 'numeric', 
+          hour: '2-digit', 
+          minute: '2-digit',
+          hour12: false
+        }).replace(',', '');
       })()
     }</div>
     <div><b>Cliente:</b> ${venta.cliente?.nombre || venta.clienteNombre || 'Consumidor Final'}</div>
@@ -303,15 +337,6 @@ export class VentasService {
   <div class="footer text-center">
     <p>¡Gracias por su compra!<br>Favor conservar su factura.<br>Dulce o Salado, siempre el mejor sabor.</p>
   </div>
-
-  <script>
-    window.onload = function() {
-      window.print();
-      setTimeout(function() {
-        window.close();
-      }, 1000);
-    };
-  </script>
 </body>
 </html>`;
   }

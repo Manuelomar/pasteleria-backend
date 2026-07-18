@@ -18,6 +18,11 @@ export class VentasController {
     res.send(html);
   }
 
+  @Get('pendientes')
+  getPendientes() {
+    return this.service.getPendientes();
+  }
+
   @Get()
   findAll() {
     return this.service.findAll();

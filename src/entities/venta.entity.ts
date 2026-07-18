@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { VentaItem } from './venta-item.entity';
 import { Cliente } from './cliente.entity';
 
-export type MetodoPago = "efectivo" | "tarjeta" | "transferencia";
+export type MetodoPago = "efectivo" | "tarjeta" | "transferencia" | "uberEats";
 export type EstadoPago = "pagado" | "pendiente" | "parcial";
 
 @Entity('ventas')
@@ -38,7 +38,7 @@ export class Venta {
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     total: number;
 
-    @Column({ type: 'enum', enum: ['efectivo', 'tarjeta', 'transferencia'], default: 'efectivo' })
+    @Column({ type: 'enum', enum: ['efectivo', 'tarjeta', 'transferencia', 'uberEats'], default: 'efectivo' })
     metodoPago: MetodoPago;
 
     @Column({ type: 'enum', enum: ['pagado', 'pendiente', 'parcial'], default: 'pagado' })
