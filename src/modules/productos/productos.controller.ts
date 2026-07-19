@@ -1,5 +1,6 @@
 // Trigger reload
 import { Controller, Get, Post, Patch, Delete, Body, Param, Query, Request, UseInterceptors, UploadedFile, BadRequestException } from '@nestjs/common';
+import { Public } from '../../decorators/public.decorator';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname } from 'path';
@@ -30,6 +31,24 @@ export class ProductosController {
   ): Promise<PaginatedResponseDto<Producto>> {
     const isDisp = disponible === 'true' ? true : disponible === 'false' ? false : undefined;
     return this.service.findAllPaged(paginationDto, search, tipo, isDisp, req.user, proveedorId);
+  }
+
+  @Public()
+  @Get('public/paged')
+  async findPublicPaged(
+    @Query() paginationDto: PaginationDto,
+    @Query('search') search?: string,
+    @Query('tipo') tipo?: string,
+  ): Promise<PaginatedResponseDto<Partial<Producto>>> {
+    const res = await this.service.findAllPaged(paginationDto, search, tipo, true, null, null);
+    
+    // Clean sensitive data
+    res.data = res.data.map((p) => {
+      const { precioCosto, historialCostos, ...publicProduct } = p;
+      return publicProduct as Partial<Producto>;
+    }) as any;
+
+    return res;
   }
 
   @Get(':id')
