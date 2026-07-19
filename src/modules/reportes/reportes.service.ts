@@ -70,7 +70,8 @@ export class ReportesService {
   ): Promise<string> {
     const qb = this.ventaRepository.createQueryBuilder('venta')
       .leftJoinAndSelect('venta.items', 'items')
-      .leftJoinAndSelect('items.producto', 'producto');
+      .leftJoinAndSelect('items.producto', 'producto')
+      .leftJoinAndSelect('venta.cliente', 'cliente');
 
     if (fechaInicio) {
       qb.andWhere('venta.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });

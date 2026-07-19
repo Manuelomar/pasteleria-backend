@@ -583,7 +583,7 @@ export const reporteVentasTemplate = `
                         <tr>
                             <td><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(venta.createdAt)) %></td>
                             <td><%= venta.factura %></td>
-                            <td><%= venta.clienteNombre || 'Cliente General' %></td>
+                            <td><%= (venta.cliente && venta.cliente.nombre) ? venta.cliente.nombre : (venta.clienteNombre || 'Cliente General') %></td>
                             <td style="text-transform: capitalize;"><%= venta.metodoPago === 'uberEats' ? 'UberEats' : venta.metodoPago %></td>
                             <td>
                                 <% if (venta.items && venta.items.length > 0) { %>
