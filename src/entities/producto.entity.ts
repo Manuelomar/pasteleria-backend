@@ -31,7 +31,7 @@ export class Producto {
     @Column({ default: true })
     disponible: boolean;
 
-    @Column({ nullable: true })
+    @Column('text', { nullable: true })
     imagen: string;
 
     @Column('text', { nullable: true })

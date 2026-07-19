@@ -24,6 +24,8 @@ export default async function handler(req: any, res: any) {
       credentials: true,
     });
     app.setGlobalPrefix('api');
+    app.use(express.json({ limit: '50mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
     app.useGlobalInterceptors(new TransformInterceptor());
     app.useGlobalFilters(new AllExceptionsFilter());
