@@ -199,7 +199,7 @@ export class VentasService {
   async getInvoiceHtml(id: string): Promise<string> {
     const venta = await this.repo.findOne({
       where: { id },
-      relations: ['cliente', 'items'],
+      relations: ['cliente', 'items', 'items.producto'],
     });
     
     if (!venta) {
@@ -282,13 +282,19 @@ export class VentasService {
       </tr>
     </thead>
     <tbody>
-      ${venta.items.map(item => `
+      ${venta.items.map(item => {
+        let displayPrice = Number(item.precio);
+        if (venta.metodoPago === 'uberEats' && item.producto && item.producto.precioUber) {
+          displayPrice = Number(item.producto.precioUber);
+        }
+        return `
         <tr>
           <td>${item.cantidad} x ${item.nombre}</td>
-          <td class="text-right">${formatCurrency(Number(item.precio))}</td>
-          <td class="text-right">${formatCurrency(item.cantidad * Number(item.precio))}</td>
+          <td class="text-right">${formatCurrency(displayPrice)}</td>
+          <td class="text-right">${formatCurrency(item.cantidad * displayPrice)}</td>
         </tr>
-      `).join('')}
+        `
+      }).join('')}
     </tbody>
   </table>
   
@@ -298,7 +304,11 @@ export class VentasService {
     <table>
       <tr>
         <td>Subtotal:</td>
-        <td class="text-right">${formatCurrency(Number(venta.subtotal))}</td>
+        <td class="text-right">${formatCurrency(
+          venta.metodoPago === 'uberEats'
+          ? venta.items.reduce((s, i) => s + (i.cantidad * (i.producto?.precioUber || Number(i.precio))), 0)
+          : Number(venta.subtotal)
+        )}</td>
       </tr>
       ${Number(venta.descuento) > 0 ? `
       <tr>
@@ -311,7 +321,11 @@ export class VentasService {
       </tr>
       <tr class="font-bold">
         <td>Total:</td>
-        <td class="text-right">${formatCurrency(Number(venta.total))}</td>
+        <td class="text-right">${formatCurrency(
+          venta.metodoPago === 'uberEats'
+          ? venta.items.reduce((s, i) => s + (i.cantidad * (i.producto?.precioUber || Number(i.precio))), 0) - Number(venta.descuento) + Number(venta.impuesto)
+          : Number(venta.total)
+        )}</td>
       </tr>
       <tr class="separator-row"><td colspan="2"><div class="separator"></div></td></tr>
       <tr>
