@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, ILike, IsNull, Not } from 'typeorm';
 import { Producto } from '../../entities/producto.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 
@@ -77,12 +77,38 @@ export class ProductosService {
     return this.repo.findOne({ where: { id } });
   }
 
-  create(data: Partial<Producto>) {
+  async create(data: Partial<Producto>) {
+    if (data.nombre) {
+      const existing = await this.repo.findOne({ 
+        where: { 
+          nombre: ILike(data.nombre),
+          proveedorId: data.proveedorId || IsNull()
+        } 
+      });
+      if (existing) {
+        throw new BadRequestException("Ya existe un producto con este nombre en tu catálogo. Utiliza la opción de 'Añadir producto existente' si deseas agregarlo con el mismo nombre.");
+      }
+    }
     const entity = this.repo.create(data);
     return this.repo.save(entity);
   }
 
   async update(id: string, data: Partial<Producto>) {
+    if (data.nombre) {
+      const current = await this.findOne(id);
+      if (current && current.nombre !== data.nombre) {
+        const existing = await this.repo.findOne({ 
+          where: { 
+            nombre: ILike(data.nombre),
+            proveedorId: current.proveedorId || IsNull(),
+            id: Not(id)
+          } 
+        });
+        if (existing) {
+          throw new BadRequestException("Ya existe un producto con este nombre en tu catálogo.");
+        }
+      }
+    }
     await this.repo.update(id, data);
     return this.findOne(id);
   }
@@ -90,5 +116,32 @@ export class ProductosService {
   async remove(id: string) {
     await this.repo.delete(id);
     return { deleted: true };
+  }
+
+  async getUniqueNames(): Promise<Partial<Producto>[]> {
+    const query = this.repo.createQueryBuilder('producto')
+      .select('DISTINCT(LOWER(producto.nombre))', 'lowerNombre')
+      .addSelect('MAX(producto.nombre)', 'nombre')
+      .addSelect('MAX(producto.categoria)', 'categoria')
+      .addSelect('MAX(producto.tipo)', 'tipo')
+      .addSelect('MAX(producto.imagen)', 'imagen')
+      .addSelect('MAX(producto.descripcion)', 'descripcion')
+      .addSelect('MAX(producto.precioCosto)', 'precioCosto')
+      .addSelect('MAX(producto.precio)', 'precio')
+      .addSelect('MAX(producto.precioUber)', 'precioUber')
+      .groupBy('LOWER(producto.nombre)')
+      .orderBy('LOWER(producto.nombre)', 'ASC');
+
+    const result = await query.getRawMany();
+    return result.map(row => ({
+      nombre: row.nombre,
+      categoria: row.categoria,
+      tipo: row.tipo,
+      imagen: row.imagen,
+      descripcion: row.descripcion,
+      precioCosto: Number(row.precioCosto) || 0,
+      precio: Number(row.precio) || 0,
+      precioUber: Number(row.precioUber) || 0
+    }));
   }
 }

@@ -51,6 +51,11 @@ export class ProductosController {
     return res;
   }
 
+  @Get('unique')
+  getUniqueNames() {
+    return this.service.getUniqueNames();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.service.findOne(id);
