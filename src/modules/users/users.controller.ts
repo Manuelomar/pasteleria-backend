@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Query, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Query, Delete, Patch } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { UserPermissions } from '../../entities/user.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
@@ -58,5 +58,11 @@ export class UsersController {
     @ApiOperation({ summary: 'Delete a user' })
     remove(@Param('id') id: string) {
         return this.usersService.remove(id);
+    }
+
+    @Patch(':id/enable-materials')
+    @ApiOperation({ summary: 'Enable selling materials for a provider' })
+    enableMaterials(@Param('id') id: string): Promise<UserResponseDto> {
+        return this.usersService.enableMaterials(id);
     }
 }

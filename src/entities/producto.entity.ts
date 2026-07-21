@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export type TipoProducto = 'dulce' | 'salado' | 'bebida';
+export type TipoProducto = 'dulce' | 'salado' | 'bebida' | 'material';
 
 @Entity('productos')
 export class Producto {
@@ -13,7 +13,7 @@ export class Producto {
     @Column()
     categoria: string;
 
-    @Column({ type: 'enum', enum: ['dulce', 'salado', 'bebida'], default: 'dulce' })
+    @Column({ type: 'enum', enum: ['dulce', 'salado', 'bebida', 'material'], default: 'dulce' })
     tipo: TipoProducto;
 
     @Column({ nullable: true })

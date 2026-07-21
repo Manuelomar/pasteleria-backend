@@ -51,7 +51,13 @@ export class ProductosService {
     }
 
     if (tipo && tipo !== 'todos') {
-      queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+      if (tipo === 'productos') {
+        queryBuilder.andWhere("producto.tipo != 'material'");
+      } else if (tipo === 'materiales') {
+        queryBuilder.andWhere("producto.tipo = 'material'");
+      } else {
+        queryBuilder.andWhere('producto.tipo = :tipo', { tipo });
+      }
     }
 
     if (disponible !== undefined) {

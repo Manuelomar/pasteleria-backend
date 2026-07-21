@@ -103,4 +103,11 @@ export class UsersService {
         await this.usersRepository.update(id, { eliminado: true });
         return { deleted: true };
     }
+
+    async enableMaterials(id: string): Promise<UserResponseDto> {
+        await this.usersRepository.update(id, { vendeMateriales: true });
+        const user = await this.usersRepository.findOne({ where: { id } });
+        if (!user) throw new NotFoundException('Usuario no encontrado');
+        return this.mapToResponseDto(user);
+    }
 }
