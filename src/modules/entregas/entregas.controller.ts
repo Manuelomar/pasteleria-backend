@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { EntregasService, CreateEntregaDto } from './entregas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
@@ -40,5 +40,10 @@ export class EntregasController {
     @Post(':id/add-to-stock')
     addToStock(@Param('id') id: string) {
         return this.entregasService.addToStock(id);
+    }
+
+    @Delete(':id')
+    remove(@Param('id') id: string) {
+        return this.entregasService.remove(id);
     }
 }

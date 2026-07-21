@@ -184,4 +184,14 @@ export class EntregasService {
         entrega.agregadoAlStock = true;
         return this.entregaRepository.save(entrega);
     }
+
+    async remove(id: string) {
+        const entrega = await this.entregaRepository.findOne({ where: { id }});
+        if (!entrega) throw new NotFoundException('Entrega no encontrada');
+        if (entrega.agregadoAlStock) {
+            throw new BadRequestException('No se puede descartar una entrega que ya fue agregada al stock');
+        }
+        await this.entregaRepository.remove(entrega);
+        return { message: 'Entrega descartada correctamente' };
+    }
 }
