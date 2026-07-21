@@ -12,21 +12,18 @@ export class ReportesController {
   async getReporteProveedor(
     @Query('fechaInicio') fechaInicio: string,
     @Query('fechaFin') fechaFin: string,
-    @Query('entregado') entregado: string,
-    @Query('noPagado') noPagado: string,
-    @Query('finalizado') finalizado: string,
+    @Query('pagoPendiente') pagoPendiente: string,
+    @Query('pagoPagado') pagoPagado: string,
     @Res() res: Response,
   ) {
-    const isEntregado = entregado === 'true';
-    const isNoPagado = noPagado === 'true';
-    const isFinalizado = finalizado === 'true';
+    const isPagoPendiente = pagoPendiente === 'true';
+    const isPagoPagado = pagoPagado === 'true';
 
     const html = await this.reportesService.generarReporteProveedor(
       fechaInicio,
       fechaFin,
-      isEntregado,
-      isNoPagado,
-      isFinalizado,
+      isPagoPendiente,
+      isPagoPagado,
     );
     
     res.setHeader('Content-Type', 'text/html');

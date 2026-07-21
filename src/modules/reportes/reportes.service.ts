@@ -18,9 +18,8 @@ export class ReportesService {
   async generarReporteProveedor(
     fechaInicio?: string,
     fechaFin?: string,
-    entregado?: boolean,
-    noPagado?: boolean,
-    finalizado?: boolean,
+    pagoPendiente?: boolean,
+    pagoPagado?: boolean,
   ): Promise<string> {
     const qb = this.entregaRepository.createQueryBuilder('entrega')
       .leftJoinAndSelect('entrega.proveedor', 'proveedor')
@@ -36,15 +35,15 @@ export class ReportesService {
       qb.andWhere('entrega.createdAt <= :fechaFin', { fechaFin: dateFin });
     }
 
+    // Excluir entregas en espera (pendiente de entrega)
+    qb.andWhere("entrega.estadoEntrega != 'en_espera'");
+
     const statusConditions = [];
-    if (entregado) {
-      statusConditions.push(`entrega.estadoEntrega = 'entregada'`);
-    }
-    if (noPagado) {
+    if (pagoPendiente) {
       statusConditions.push(`entrega.estadoPago = 'pendiente_pago'`);
     }
-    if (finalizado) {
-      statusConditions.push(`(entrega.estadoEntrega = 'entregada' AND entrega.estadoPago = 'pagado')`);
+    if (pagoPagado) {
+      statusConditions.push(`entrega.estadoPago = 'pagado'`);
     }
 
     if (statusConditions.length > 0) {
@@ -57,7 +56,7 @@ export class ReportesService {
 
     const html = ejs.render(reporteProveedorTemplate, {
       entregas,
-      filtros: { fechaInicio, fechaFin, entregado, noPagado, finalizado }
+      filtros: { fechaInicio, fechaFin, pagoPendiente, pagoPagado }
     });
 
     return html;

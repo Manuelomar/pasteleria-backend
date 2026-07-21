@@ -135,11 +135,10 @@ export const reporteProveedorTemplate = `
             <strong>Filtros aplicados:</strong><br>
             Fecha Inicio: <%= filtros.fechaInicio ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaInicio)) : 'N/A' %> | 
             Fecha Fin: <%= filtros.fechaFin ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaFin)) : 'N/A' %><br>
-            Estados: 
-            <%= filtros.entregado ? '[x] Entregado ' : '' %>
-            <%= filtros.noPagado ? '[x] No Pagado ' : '' %>
-            <%= filtros.finalizado ? '[x] Finalizado ' : '' %>
-            <%= (!filtros.entregado && !filtros.noPagado && !filtros.finalizado) ? 'Todos' : '' %>
+            Estado de Pago: 
+            <%= filtros.pagoPendiente ? '[x] Pendiente ' : '' %>
+            <%= filtros.pagoPagado ? '[x] Pagado ' : '' %>
+            <%= (!filtros.pagoPendiente && !filtros.pagoPagado) ? 'Todos' : '' %>
         </div>
 
         <% if (entregas && entregas.length > 0) { %>
