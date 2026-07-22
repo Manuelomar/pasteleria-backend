@@ -14,7 +14,7 @@ export class EntregaItem {
     @JoinColumn({ name: 'entregaId' })
     entrega: Entrega;
 
-    @Column()
+    @Column({ nullable: true })
     productoId: string;
 
     @ManyToOne(() => Producto, { onDelete: 'SET NULL', nullable: true })
