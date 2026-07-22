@@ -16,6 +16,9 @@ export class UserResponseDto {
 
     @ApiProperty()
     permissions: UserPermissions;
+
+    @ApiProperty({ required: false })
+    vendeMateriales?: boolean;
 }
 
 export class AuthResponseDto {
