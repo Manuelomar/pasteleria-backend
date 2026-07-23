@@ -135,6 +135,68 @@ export class VentasService {
     };
   }
 
+  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10) {
+    const skip = (pageNumber - 1) * pageSize;
+
+    const query = this.ventaItemRepo.createQueryBuilder('item')
+      .leftJoinAndSelect('item.venta', 'venta')
+      .leftJoinAndSelect('venta.cliente', 'cliente')
+      .orderBy('venta.fecha', 'DESC');
+
+    if (desde) {
+      query.andWhere('DATE(venta.fecha) >= :desde', { desde });
+    }
+    if (hasta) {
+      query.andWhere('DATE(venta.fecha) <= :hasta', { hasta });
+    }
+    if (productoId && productoId !== 'all' && productoId !== '') {
+      query.andWhere('item.productoId = :productoId', { productoId });
+    }
+
+    const [items, total] = await query.skip(skip).take(pageSize).getManyAndCount();
+
+    // Get overall totals for the filtered data without pagination
+    const totalsQuery = this.ventaItemRepo.createQueryBuilder('item')
+      .leftJoin('item.venta', 'venta');
+
+    if (desde) {
+      totalsQuery.andWhere('DATE(venta.fecha) >= :desde', { desde });
+    }
+    if (hasta) {
+      totalsQuery.andWhere('DATE(venta.fecha) <= :hasta', { hasta });
+    }
+    if (productoId && productoId !== 'all' && productoId !== '') {
+      totalsQuery.andWhere('item.productoId = :productoId', { productoId });
+    }
+    
+    totalsQuery.select('SUM(item.cantidad)', 'overallCantidad')
+               .addSelect('SUM(item.cantidad * item.precio)', 'overallTotal');
+               
+    const totalsResult = await totalsQuery.getRawOne();
+
+    const data = items.map(item => ({
+      id: item.id,
+      fecha: item.venta?.fecha,
+      factura: item.venta?.factura,
+      clienteNombre: item.venta?.cliente?.nombre || item.venta?.clienteNombre || 'Consumidor Final',
+      producto: item.nombre,
+      productoId: item.productoId,
+      cantidad: Number(item.cantidad),
+      precio: Number(item.precio),
+      total: Number(item.cantidad) * Number(item.precio),
+    }));
+
+    return {
+      data,
+      total,
+      page: pageNumber,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      overallCantidad: Number(totalsResult?.overallCantidad || 0),
+      overallTotal: Number(totalsResult?.overallTotal || 0),
+    };
+  }
+
   findOne(id: string) {
     return this.repo.findOne({ where: { id } });
   }

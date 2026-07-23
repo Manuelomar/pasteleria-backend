@@ -46,6 +46,16 @@ export class VentasController {
     return this.service.getReporteHistorico();
   }
 
+  @Get('historial-productos')
+  getHistorialProductos(
+    @Query('desde') desde?: string,
+    @Query('hasta') hasta?: string,
+    @Query('productoId') productoId?: string,
+    @Query() paginationDto?: PaginationDto,
+  ) {
+    return this.service.getHistorialProductos(desde, hasta, productoId, paginationDto?.pageNumber, paginationDto?.pageSize);
+  }
+
   @Get('top-productos')
   getTopProductos(@Query() paginationDto: PaginationDto) {
     return this.service.getTopProductos(paginationDto);
