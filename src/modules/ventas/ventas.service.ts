@@ -174,17 +174,24 @@ export class VentasService {
                
     const totalsResult = await totalsQuery.getRawOne();
 
-    const data = items.map(item => ({
-      id: item.id,
-      fecha: item.venta?.fecha,
-      factura: item.venta?.factura,
-      clienteNombre: item.venta?.cliente?.nombre || item.venta?.clienteNombre || 'Consumidor Final',
-      producto: item.nombre,
-      productoId: item.productoId,
-      cantidad: Number(item.cantidad),
-      precio: Number(item.precio),
-      total: Number(item.cantidad) * Number(item.precio),
-    }));
+    const data = items.map(item => {
+      let nombreCliente = item.venta?.cliente?.nombre || item.venta?.clienteNombre || 'Consumidor Final';
+      if (item.venta?.metodoPago === 'uberEats') {
+        nombreCliente = `UberEats - ${nombreCliente === 'Consumidor Final' ? 'Cliente' : nombreCliente}`;
+      }
+
+      return {
+        id: item.id,
+        fecha: item.venta?.fecha,
+        factura: item.venta?.factura,
+        clienteNombre: nombreCliente,
+        producto: item.nombre,
+        productoId: item.productoId,
+        cantidad: Number(item.cantidad),
+        precio: Number(item.precio),
+        total: Number(item.cantidad) * Number(item.precio),
+      };
+    });
 
     return {
       data,
