@@ -170,7 +170,8 @@ export class VentasService {
     }
     
     totalsQuery.select('SUM(item.cantidad)', 'overallCantidad')
-               .addSelect('SUM(item.cantidad * item.precio)', 'overallTotal');
+               .addSelect('SUM(item.cantidad * item.precio)', 'overallTotal')
+               .addSelect('SUM(item.cantidad * (item.precio - COALESCE(item.precioCosto, 0)))', 'overallGanancia');
                
     const totalsResult = await totalsQuery.getRawOne();
 
@@ -201,6 +202,7 @@ export class VentasService {
       totalPages: Math.ceil(total / pageSize),
       overallCantidad: Number(totalsResult?.overallCantidad || 0),
       overallTotal: Number(totalsResult?.overallTotal || 0),
+      overallGanancia: Number(totalsResult?.overallGanancia || 0),
     };
   }
 
