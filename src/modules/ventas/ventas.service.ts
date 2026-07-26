@@ -463,8 +463,13 @@ export class VentasService {
     const productosDisp = productos.filter((p) => p.disponible).length;
     
     // Por Cobrar
-    const clientes = await this.clienteRepo.find();
-    const porCobrar = clientes.reduce((s, c) => s + Number(c.balance || 0), 0);
+    const pendientes = await this.repo.find({
+      where: [
+        { estadoPago: 'pendiente' },
+        { estadoPago: 'parcial' }
+      ]
+    });
+    const porCobrar = pendientes.reduce((s, v) => s + Number(v.balance || 0), 0);
 
     // Ultimas ventas
     const ventasRecientes = await this.repo.find({
