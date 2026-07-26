@@ -318,6 +318,15 @@ export class VentasService {
 
     const productos = await this.productoRepo.find();
     
+    const getRatio = (v: any) => {
+      if (v.estadoPago === 'pendiente') return 0;
+      if (v.estadoPago === 'parcial') {
+        const totalVenta = Number(v.total) || 1;
+        return totalVenta > 0 ? (Number(v.montoPagado) || 0) / totalVenta : 0;
+      }
+      return 1;
+    };
+
     const createEmptyStats = () => ({ ventas: 0, ganancia: 0, itbis: 0, sinItbis: 0, ordenes: 0 });
     const hoy = createEmptyStats();
     const semana = createEmptyStats();
@@ -332,6 +341,8 @@ export class VentasService {
       const isMes = date.getFullYear() === currentYear && date.getMonth() === currentMonth;
       const isAnio = date.getFullYear() === currentYear;
 
+      const ratio = getRatio(v);
+
       let ventaCosto = 0;
       if (v.items) {
           v.items.forEach(item => {
@@ -339,12 +350,12 @@ export class VentasService {
           });
       }
       
-      const sub = Number(v.subtotal) || 0;
-      const imp = Number(v.impuesto) || 0;
-      const desc = Number(v.descuento) || 0;
+      const sub = (Number(v.subtotal) || 0) * ratio;
+      const imp = (Number(v.impuesto) || 0) * ratio;
+      const desc = (Number(v.descuento) || 0) * ratio;
       const ingresoVenta = sub - desc;
-      const ganancia = ingresoVenta - ventaCosto;
-      const vTotal = Number(v.total) || 0;
+      const ganancia = ingresoVenta - (ventaCosto * ratio);
+      const vTotal = (Number(v.total) || 0) * ratio;
 
       if (isHoy) {
         hoy.ventas += vTotal;
@@ -397,7 +408,7 @@ export class VentasService {
       const dateStr = d.toISOString().split("T")[0];
       const sum = allVentasConsidered
         .filter(v => new Date(v.fecha).toISOString().split("T")[0] === dateStr)
-        .reduce((s, v) => s + (Number(v.total) || 0), 0);
+        .reduce((s, v) => s + ((Number(v.total) || 0) * getRatio(v)), 0);
       ventasSemanales.push({ dia: days[d.getDay()], ventas: sum });
     }
 
@@ -408,9 +419,9 @@ export class VentasService {
     allVentasConsidered.forEach(v => {
       const date = new Date(v.fecha);
       if (date.getFullYear() === currentYear) {
-        ventasMensuales[date.getMonth()].ventas += (Number(v.total) || 0);
-        ventasMensuales[date.getMonth()].subtotal += (Number(v.subtotal) || 0);
-        ventasMensuales[date.getMonth()].impuesto += (Number(v.impuesto) || 0);
+        ventasMensuales[date.getMonth()].ventas += (Number(v.total) || 0) * getRatio(v);
+        ventasMensuales[date.getMonth()].subtotal += (Number(v.subtotal) || 0) * getRatio(v);
+        ventasMensuales[date.getMonth()].impuesto += (Number(v.impuesto) || 0) * getRatio(v);
       }
     });
 
@@ -427,7 +438,7 @@ export class VentasService {
             const prod = productos.find(p => p.id === item.productoId);
             if (prod) {
               const cat = prod.tipo === "dulce" ? "Dulce" : prod.tipo === "salado" ? "Salado" : "Bebida";
-              catMap[cat] += Number(item.precio) * Number(item.cantidad);
+              catMap[cat] += Number(item.precio) * Number(item.cantidad) * getRatio(v);
             }
           });
       }
@@ -451,7 +462,7 @@ export class VentasService {
       const met = v.metodoPago === "efectivo" ? "Efectivo" : 
                   v.metodoPago === "tarjeta" ? "Tarjeta" : 
                   v.metodoPago === "uberEats" ? "UberEats" : "Transferencia";
-      mapMet[met] += (Number(v.total) || 0);
+      mapMet[met] += (Number(v.total) || 0) * getRatio(v);
     });
     const metodosPago = Object.keys(mapMet).map(k => ({
       metodo: k,
