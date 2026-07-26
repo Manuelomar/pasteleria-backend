@@ -23,6 +23,14 @@ export class VentasController {
     return this.service.getPendientes();
   }
 
+  @Get('dashboard-metrics')
+  getDashboardMetrics(
+    @Query('fechaInicio') fechaInicio?: string,
+    @Query('fechaFin') fechaFin?: string,
+  ) {
+    return this.service.getDashboardMetrics(fechaInicio, fechaFin);
+  }
+
   @Get()
   findAll() {
     return this.service.findAll();

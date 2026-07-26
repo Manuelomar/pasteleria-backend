@@ -1,9 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like } from 'typeorm';
+import { Repository, Between, Like, MoreThanOrEqual } from 'typeorm';
 import { Venta } from '../../entities/venta.entity';
 import { Producto } from '../../entities/producto.entity';
 import { VentaItem } from '../../entities/venta-item.entity';
+import { Cliente } from '../../entities/cliente.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 
 @Injectable()
@@ -15,6 +16,8 @@ export class VentasService {
     private readonly productoRepo: Repository<Producto>,
     @InjectRepository(VentaItem)
     private readonly ventaItemRepo: Repository<VentaItem>,
+    @InjectRepository(Cliente)
+    private readonly clienteRepo: Repository<Cliente>,
   ) {}
 
   findAll() {
@@ -262,6 +265,225 @@ export class VentasService {
   async remove(id: string) {
     await this.repo.delete(id);
     return { deleted: true };
+  }
+
+  async getDashboardMetrics(fechaInicio?: string, fechaFin?: string) {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    const startOfDay = new Date(today);
+    startOfDay.setHours(0, 0, 0, 0);
+    const startOfWeek = new Date(today);
+    startOfWeek.setDate(today.getDate() - 7);
+    startOfWeek.setHours(0, 0, 0, 0);
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth();
+    const startOfYear = new Date(currentYear, 0, 1);
+
+    // Fetch necessary data
+    // To optimize, we fetch sales for the current year OR up to startOfWeek if the year just started
+    const minDate = startOfWeek < startOfYear ? startOfWeek : startOfYear;
+    
+    let queryOptions: any = {
+      where: { fecha: MoreThanOrEqual(minDate) },
+      relations: ['items'],
+      order: { fecha: 'DESC' }
+    };
+    
+    // Fetch base sales for default metrics
+    let ventasBase = await this.repo.find(queryOptions);
+    
+    // Fetch custom sales if requested and they fall outside our base range
+    let ventasCustom = [];
+    let customStart: Date, customEnd: Date;
+    if (fechaInicio && fechaFin) {
+       customStart = new Date(fechaInicio);
+       customStart.setHours(0, 0, 0, 0);
+       customEnd = new Date(fechaFin);
+       customEnd.setHours(23, 59, 59, 999);
+       
+       if (customStart < minDate) {
+           ventasCustom = await this.repo.find({
+               where: { fecha: Between(customStart, customEnd) },
+               relations: ['items']
+           });
+       }
+    }
+    
+    const allVentasConsidered = [...ventasBase];
+    ventasCustom.forEach(vc => {
+        if (!allVentasConsidered.find(v => v.id === vc.id)) {
+            allVentasConsidered.push(vc);
+        }
+    });
+
+    const productos = await this.productoRepo.find();
+    
+    const createEmptyStats = () => ({ ventas: 0, ganancia: 0, itbis: 0, sinItbis: 0, ordenes: 0 });
+    const hoy = createEmptyStats();
+    const semana = createEmptyStats();
+    const mes = createEmptyStats();
+    const anio = createEmptyStats();
+    const custom = createEmptyStats();
+
+    allVentasConsidered.forEach(v => {
+      const date = new Date(v.fecha);
+      const isHoy = date >= startOfDay && date <= today;
+      const isSemana = date >= startOfWeek && date <= today;
+      const isMes = date.getFullYear() === currentYear && date.getMonth() === currentMonth;
+      const isAnio = date.getFullYear() === currentYear;
+
+      let ventaCosto = 0;
+      if (v.items) {
+          v.items.forEach(item => {
+            ventaCosto += (Number(item.precioCosto) || 0) * Number(item.cantidad);
+          });
+      }
+      
+      const sub = Number(v.subtotal) || 0;
+      const imp = Number(v.impuesto) || 0;
+      const desc = Number(v.descuento) || 0;
+      const ingresoVenta = sub - desc;
+      const ganancia = ingresoVenta - ventaCosto;
+      const vTotal = Number(v.total) || 0;
+
+      if (isHoy) {
+        hoy.ventas += vTotal;
+        hoy.ganancia += ganancia;
+        hoy.itbis += imp;
+        hoy.sinItbis += sub;
+        hoy.ordenes += 1;
+      }
+      if (isSemana) {
+        semana.ventas += vTotal;
+        semana.ganancia += ganancia;
+        semana.itbis += imp;
+        semana.sinItbis += sub;
+        semana.ordenes += 1;
+      }
+      if (isMes) {
+        mes.ventas += vTotal;
+        mes.ganancia += ganancia;
+        mes.itbis += imp;
+        mes.sinItbis += sub;
+        mes.ordenes += 1;
+      }
+      if (isAnio) {
+        anio.ventas += vTotal;
+        anio.ganancia += ganancia;
+        anio.itbis += imp;
+        anio.sinItbis += sub;
+        anio.ordenes += 1;
+      }
+
+      if (customStart && customEnd) {
+        if (date >= customStart && date <= customEnd) {
+          custom.ventas += vTotal;
+          custom.ganancia += ganancia;
+          custom.itbis += imp;
+          custom.sinItbis += sub;
+          custom.ordenes += 1;
+        }
+      }
+    });
+
+    const stats = { hoy, semana, mes, anio, custom };
+
+    // Ventas Semanales
+    const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const ventasSemanales = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const sum = allVentasConsidered
+        .filter(v => new Date(v.fecha).toISOString().split("T")[0] === dateStr)
+        .reduce((s, v) => s + (Number(v.total) || 0), 0);
+      ventasSemanales.push({ dia: days[d.getDay()], ventas: sum });
+    }
+
+    // Ventas Mensuales
+    const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+    const ventasMensuales = months.map(mes => ({ mes, ventas: 0, subtotal: 0, impuesto: 0 }));
+    
+    allVentasConsidered.forEach(v => {
+      const date = new Date(v.fecha);
+      if (date.getFullYear() === currentYear) {
+        ventasMensuales[date.getMonth()].ventas += (Number(v.total) || 0);
+        ventasMensuales[date.getMonth()].subtotal += (Number(v.subtotal) || 0);
+        ventasMensuales[date.getMonth()].impuesto += (Number(v.impuesto) || 0);
+      }
+    });
+
+    // Categorias
+    const colorsCat: Record<string, string> = {
+      Dulce: "var(--color-chart-1)",
+      Salado: "var(--color-chart-2)",
+      Bebida: "var(--color-chart-3)",
+    };
+    const catMap: Record<string, number> = { Dulce: 0, Salado: 0, Bebida: 0 };
+    allVentasConsidered.forEach(v => {
+      if (v.items) {
+          v.items.forEach(item => {
+            const prod = productos.find(p => p.id === item.productoId);
+            if (prod) {
+              const cat = prod.tipo === "dulce" ? "Dulce" : prod.tipo === "salado" ? "Salado" : "Bebida";
+              catMap[cat] += Number(item.precio) * Number(item.cantidad);
+            }
+          });
+      }
+    });
+    const ventasPorCategoria = Object.keys(catMap).map(k => ({
+      categoria: k,
+      valor: catMap[k],
+      fill: colorsCat[k] || "var(--color-chart-1)"
+    })).filter(x => x.valor > 0);
+
+    // Metodos Pago
+    const colorsMet: Record<string, string> = {
+      Efectivo: "var(--color-chart-1)",
+      Tarjeta: "var(--color-chart-2)",
+      Transferencia: "var(--color-chart-3)",
+      UberEats: "var(--color-chart-4)",
+    };
+    const mapMet: Record<string, number> = { Efectivo: 0, Tarjeta: 0, Transferencia: 0, UberEats: 0 };
+    
+    allVentasConsidered.forEach(v => {
+      const met = v.metodoPago === "efectivo" ? "Efectivo" : 
+                  v.metodoPago === "tarjeta" ? "Tarjeta" : 
+                  v.metodoPago === "uberEats" ? "UberEats" : "Transferencia";
+      mapMet[met] += (Number(v.total) || 0);
+    });
+    const metodosPago = Object.keys(mapMet).map(k => ({
+      metodo: k,
+      valor: mapMet[k],
+      fill: colorsMet[k] || "var(--color-chart-1)"
+    })).filter(x => x.valor > 0);
+
+    const masVendidos = [...productos].sort((a, b) => Number(b.vendidos) - Number(a.vendidos)).slice(0, 5);
+    const productosDisp = productos.filter((p) => p.disponible).length;
+    
+    // Por Cobrar
+    const clientes = await this.clienteRepo.find();
+    const porCobrar = clientes.reduce((s, c) => s + Number(c.balance || 0), 0);
+
+    // Ultimas ventas
+    const ventasRecientes = await this.repo.find({
+        order: { fecha: 'DESC' },
+        take: 5,
+        relations: ['cliente', 'items']
+    });
+
+    return {
+        stats,
+        ventasSemanales,
+        ventasMensuales,
+        ventasPorCategoria,
+        metodosPago,
+        masVendidos,
+        productosDisp,
+        porCobrar,
+        ventasRecientes
+    };
   }
 
   async getInvoiceHtml(id: string): Promise<string> {
