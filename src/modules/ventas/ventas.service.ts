@@ -245,9 +245,6 @@ export class VentasService {
           if (producto) {
             producto.cantidad = Math.max(0, (producto.cantidad || 0) - item.cantidad);
             producto.vendidos = (producto.vendidos || 0) + item.cantidad;
-            if (producto.cantidad === 0) {
-              producto.disponible = false;
-            }
             await this.productoRepo.save(producto);
           }
         }
