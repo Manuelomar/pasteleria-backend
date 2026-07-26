@@ -1,4 +1,4 @@
-import { Controller, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Query, Res, UseGuards, Request } from '@nestjs/common';
 import { Response } from 'express';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ReportesService } from './reportes.service';
@@ -14,16 +14,23 @@ export class ReportesController {
     @Query('fechaFin') fechaFin: string,
     @Query('pagoPendiente') pagoPendiente: string,
     @Query('pagoPagado') pagoPagado: string,
+    @Request() req,
     @Res() res: Response,
   ) {
     const isPagoPendiente = pagoPendiente === 'true';
     const isPagoPagado = pagoPagado === 'true';
+
+    let proveedorId = undefined;
+    if (req.user && req.user.role === 'proveedor') {
+      proveedorId = req.user.id;
+    }
 
     const html = await this.reportesService.generarReporteProveedor(
       fechaInicio,
       fechaFin,
       isPagoPendiente,
       isPagoPagado,
+      proveedorId
     );
     
     res.setHeader('Content-Type', 'text/html');

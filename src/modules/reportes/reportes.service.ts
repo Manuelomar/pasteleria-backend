@@ -20,11 +20,16 @@ export class ReportesService {
     fechaFin?: string,
     pagoPendiente?: boolean,
     pagoPagado?: boolean,
+    proveedorId?: string,
   ): Promise<string> {
     const qb = this.entregaRepository.createQueryBuilder('entrega')
       .leftJoinAndSelect('entrega.proveedor', 'proveedor')
       .leftJoinAndSelect('entrega.items', 'items')
       .leftJoinAndSelect('items.producto', 'producto');
+
+    if (proveedorId) {
+      qb.andWhere('proveedor.id = :proveedorId', { proveedorId });
+    }
 
     if (fechaInicio) {
       qb.andWhere('entrega.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
