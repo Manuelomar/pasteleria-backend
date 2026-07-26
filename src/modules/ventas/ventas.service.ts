@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, Like, MoreThanOrEqual } from 'typeorm';
+import { Repository, Between, Like, MoreThanOrEqual, MoreThan } from 'typeorm';
 import { Venta } from '../../entities/venta.entity';
 import { Producto } from '../../entities/producto.entity';
 import { VentaItem } from '../../entities/venta-item.entity';
@@ -27,8 +27,8 @@ export class VentasService {
   getPendientes() {
     return this.repo.find({
       where: [
-        { estadoPago: 'pendiente' },
-        { estadoPago: 'parcial' }
+        { estadoPago: 'pendiente', balance: MoreThan(0) },
+        { estadoPago: 'parcial', balance: MoreThan(0) }
       ],
       relations: ['cliente', 'items'],
       order: { fecha: 'ASC' },
