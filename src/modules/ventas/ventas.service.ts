@@ -150,11 +150,11 @@ export class VentasService {
       .orderBy('venta.fecha', 'DESC');
 
     if (desde) {
-      const startDate = new Date(desde + 'T00:00:00');
+      const startDate = getDRDateBounds(desde).startDate;
       query.andWhere('venta.fecha >= :startDate', { startDate });
     }
     if (hasta) {
-      const endDate = new Date(hasta + 'T23:59:59.999');
+      const endDate = getDRDateBounds(hasta).endDate;
       query.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
@@ -174,11 +174,11 @@ export class VentasService {
       .leftJoin('item.venta', 'venta');
 
     if (desde) {
-      const startDate = new Date(desde + 'T00:00:00');
+      const startDate = getDRDateBounds(desde).startDate;
       totalsQuery.andWhere('venta.fecha >= :startDate', { startDate });
     }
     if (hasta) {
-      const endDate = new Date(hasta + 'T23:59:59.999');
+      const endDate = getDRDateBounds(hasta).endDate;
       totalsQuery.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
