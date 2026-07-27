@@ -32,11 +32,10 @@ export class ReportesService {
     }
 
     if (fechaInicio) {
-      qb.andWhere('entrega.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
+      qb.andWhere('entrega.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin);
-      dateFin.setHours(23, 59, 59, 999);
+      const dateFin = new Date(fechaFin + 'T23:59:59.999');
       qb.andWhere('entrega.createdAt <= :fechaFin', { fechaFin: dateFin });
     }
 
@@ -78,12 +77,11 @@ export class ReportesService {
       .leftJoinAndSelect('venta.cliente', 'cliente');
 
     if (fechaInicio) {
-      qb.andWhere('venta.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
+      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin);
-      dateFin.setHours(23, 59, 59, 999);
-      qb.andWhere('venta.createdAt <= :fechaFin', { fechaFin: dateFin });
+      const dateFin = new Date(fechaFin + 'T23:59:59.999');
+      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: dateFin });
     }
 
     if (metodosPago && metodosPago.length > 0) {
@@ -127,12 +125,11 @@ export class ReportesService {
       .leftJoinAndSelect('items.producto', 'producto');
 
     if (fechaInicio) {
-      qb.andWhere('venta.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio) });
+      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin);
-      dateFin.setHours(23, 59, 59, 999);
-      qb.andWhere('venta.createdAt <= :fechaFin', { fechaFin: dateFin });
+      const dateFin = new Date(fechaFin + 'T23:59:59.999');
+      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: dateFin });
     }
 
     qb.orderBy('venta.createdAt', 'DESC');

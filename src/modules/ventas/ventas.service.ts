@@ -44,8 +44,9 @@ export class VentasService {
       .orderBy('venta.fecha', 'DESC');
 
     if (fecha) {
-      // Asume formato YYYY-MM-DD
-      query.andWhere('DATE(venta.fecha) = :fecha', { fecha });
+      const startDate = new Date(fecha + 'T00:00:00');
+      const endDate = new Date(fecha + 'T23:59:59.999');
+      query.andWhere('venta.fecha >= :startDate AND venta.fecha <= :endDate', { startDate, endDate });
     }
 
     const [data, total] = await query.skip(skip).take(pageSize).getManyAndCount();
@@ -54,11 +55,14 @@ export class VentasService {
   }
 
   async getResumenCaja(fecha: string) {
+    const startDate = new Date(fecha + 'T00:00:00');
+    const endDate = new Date(fecha + 'T23:59:59.999');
+
     const query = this.repo.createQueryBuilder('venta')
       .select('venta.metodoPago', 'metodoPago')
       .addSelect('SUM(venta.total)', 'total')
       .addSelect('COUNT(venta.id)', 'cantidad')
-      .where('DATE(venta.fecha) = :fecha', { fecha })
+      .where('venta.fecha >= :startDate AND venta.fecha <= :endDate', { startDate, endDate })
       .groupBy('venta.metodoPago');
 
     const result = await query.getRawMany();
@@ -147,10 +151,12 @@ export class VentasService {
       .orderBy('venta.fecha', 'DESC');
 
     if (desde) {
-      query.andWhere('DATE(venta.fecha) >= :desde', { desde });
+      const startDate = new Date(desde + 'T00:00:00');
+      query.andWhere('venta.fecha >= :startDate', { startDate });
     }
     if (hasta) {
-      query.andWhere('DATE(venta.fecha) <= :hasta', { hasta });
+      const endDate = new Date(hasta + 'T23:59:59.999');
+      query.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
       query.andWhere('item.productoId = :productoId', { productoId });
@@ -169,10 +175,12 @@ export class VentasService {
       .leftJoin('item.venta', 'venta');
 
     if (desde) {
-      totalsQuery.andWhere('DATE(venta.fecha) >= :desde', { desde });
+      const startDate = new Date(desde + 'T00:00:00');
+      totalsQuery.andWhere('venta.fecha >= :startDate', { startDate });
     }
     if (hasta) {
-      totalsQuery.andWhere('DATE(venta.fecha) <= :hasta', { hasta });
+      const endDate = new Date(hasta + 'T23:59:59.999');
+      totalsQuery.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
       totalsQuery.andWhere('item.productoId = :productoId', { productoId });
@@ -307,10 +315,8 @@ export class VentasService {
     let ventasCustom = [];
     let customStart: Date, customEnd: Date;
     if (fechaInicio && fechaFin) {
-       customStart = new Date(fechaInicio);
-       customStart.setHours(0, 0, 0, 0);
-       customEnd = new Date(fechaFin);
-       customEnd.setHours(23, 59, 59, 999);
+       customStart = new Date(fechaInicio + 'T00:00:00');
+       customEnd = new Date(fechaFin + 'T23:59:59.999');
        
        if (customStart < minDate) {
            ventasCustom = await this.repo.find({
