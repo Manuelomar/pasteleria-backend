@@ -92,7 +92,24 @@ export class ReportesService {
 
     qb.orderBy('venta.createdAt', 'DESC');
 
-    const ventas = await qb.getMany();
+    let ventas = await qb.getMany();
+
+    // Ajustar para contabilidad de caja igual que en el Dashboard
+    ventas = ventas.filter(v => v.estadoPago !== 'pendiente');
+    ventas.forEach(v => {
+      if (v.estadoPago === 'parcial') {
+        const ratio = (Number(v.total) || 1) > 0 ? (Number(v.montoPagado) || 0) / (Number(v.total) || 1) : 0;
+        v.subtotal = (Number(v.subtotal) || 0) * ratio as any;
+        v.impuesto = (Number(v.impuesto) || 0) * ratio as any;
+        v.descuento = (Number(v.descuento) || 0) * ratio as any;
+        v.total = (Number(v.total) || 0) * ratio as any;
+        if (v.items) {
+          v.items.forEach(item => {
+            item.cantidad = (Number(item.cantidad) || 0) * ratio as any;
+          });
+        }
+      }
+    });
 
     const html = ejs.render(reporteVentasTemplate, {
       ventas,
@@ -120,7 +137,24 @@ export class ReportesService {
 
     qb.orderBy('venta.createdAt', 'DESC');
 
-    const ventas = await qb.getMany();
+    let ventas = await qb.getMany();
+
+    // Ajustar para contabilidad de caja igual que en el Dashboard
+    ventas = ventas.filter(v => v.estadoPago !== 'pendiente');
+    ventas.forEach(v => {
+      if (v.estadoPago === 'parcial') {
+        const ratio = (Number(v.total) || 1) > 0 ? (Number(v.montoPagado) || 0) / (Number(v.total) || 1) : 0;
+        v.subtotal = (Number(v.subtotal) || 0) * ratio as any;
+        v.impuesto = (Number(v.impuesto) || 0) * ratio as any;
+        v.descuento = (Number(v.descuento) || 0) * ratio as any;
+        v.total = (Number(v.total) || 0) * ratio as any;
+        if (v.items) {
+          v.items.forEach(item => {
+            item.cantidad = (Number(item.cantidad) || 0) * ratio as any;
+          });
+        }
+      }
+    });
 
     const html = ejs.render(reporteGananciasTemplate, {
       ventas,
