@@ -2,10 +2,14 @@ process.env.TZ = 'America/Santo_Domingo';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import * as pg from 'pg';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { json, urlencoded } from 'express';
+
+// Force pg to parse timestamp without time zone as UTC
+pg.types.setTypeParser(1114, str => new Date(str + 'Z'));
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
