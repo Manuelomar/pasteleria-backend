@@ -59,9 +59,10 @@ export class VentasController {
     @Query('desde') desde?: string,
     @Query('hasta') hasta?: string,
     @Query('productoId') productoId?: string,
+    @Query('estadoPago') estadoPago?: string,
     @Query() paginationDto?: PaginationDto,
   ) {
-    return this.service.getHistorialProductos(desde, hasta, productoId, paginationDto?.pageNumber, paginationDto?.pageSize);
+    return this.service.getHistorialProductos(desde, hasta, productoId, paginationDto?.pageNumber, paginationDto?.pageSize, estadoPago);
   }
 
   @Get('top-productos')

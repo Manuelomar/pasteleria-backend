@@ -138,7 +138,7 @@ export class VentasService {
     };
   }
 
-  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10) {
+  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10, estadoPagoFilter?: string) {
     const skip = (pageNumber - 1) * pageSize;
 
     const query = this.ventaItemRepo.createQueryBuilder('item')
@@ -156,6 +156,12 @@ export class VentasService {
       query.andWhere('item.productoId = :productoId', { productoId });
     }
 
+    if (estadoPagoFilter === 'pagadas') {
+      query.andWhere('venta.estadoPago IN (:...estados)', { estados: ['pagado', 'parcial'] });
+    } else if (estadoPagoFilter === 'pendientes') {
+      query.andWhere('venta.estadoPago = :estado', { estado: 'pendiente' });
+    }
+
     const [items, total] = await query.skip(skip).take(pageSize).getManyAndCount();
 
     // Get overall totals for the filtered data without pagination
@@ -170,6 +176,11 @@ export class VentasService {
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
       totalsQuery.andWhere('item.productoId = :productoId', { productoId });
+    }
+    if (estadoPagoFilter === 'pagadas') {
+      totalsQuery.andWhere('venta.estadoPago IN (:...estados)', { estados: ['pagado', 'parcial'] });
+    } else if (estadoPagoFilter === 'pendientes') {
+      totalsQuery.andWhere('venta.estadoPago = :estado', { estado: 'pendiente' });
     }
     
     totalsQuery.select('SUM(item.cantidad)', 'overallCantidad')
