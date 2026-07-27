@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { getDRDateBounds } from '../../utils/date.utils';
 import { Repository } from 'typeorm';
 import { Entrega } from '../../entities/entrega.entity';
 import { Venta } from '../../entities/venta.entity';
@@ -32,11 +33,12 @@ export class ReportesService {
     }
 
     if (fechaInicio) {
-      qb.andWhere('entrega.createdAt >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
+      const startDate = getDRDateBounds(fechaInicio).startDate;
+      qb.andWhere('entrega.createdAt >= :fechaInicio', { fechaInicio: startDate });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin + 'T23:59:59.999');
-      qb.andWhere('entrega.createdAt <= :fechaFin', { fechaFin: dateFin });
+      const endDate = getDRDateBounds(fechaFin).endDate;
+      qb.andWhere('entrega.createdAt <= :fechaFin', { fechaFin: endDate });
     }
 
     // Excluir entregas en espera (pendiente de entrega)
@@ -77,11 +79,12 @@ export class ReportesService {
       .leftJoinAndSelect('venta.cliente', 'cliente');
 
     if (fechaInicio) {
-      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
+      const startDate = getDRDateBounds(fechaInicio).startDate;
+      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: startDate });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin + 'T23:59:59.999');
-      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: dateFin });
+      const endDate = getDRDateBounds(fechaFin).endDate;
+      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: endDate });
     }
 
     if (metodosPago && metodosPago.length > 0) {
@@ -125,11 +128,12 @@ export class ReportesService {
       .leftJoinAndSelect('items.producto', 'producto');
 
     if (fechaInicio) {
-      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: new Date(fechaInicio + 'T00:00:00') });
+      const startDate = getDRDateBounds(fechaInicio).startDate;
+      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: startDate });
     }
     if (fechaFin) {
-      const dateFin = new Date(fechaFin + 'T23:59:59.999');
-      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: dateFin });
+      const endDate = getDRDateBounds(fechaFin).endDate;
+      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: endDate });
     }
 
     qb.orderBy('venta.createdAt', 'DESC');

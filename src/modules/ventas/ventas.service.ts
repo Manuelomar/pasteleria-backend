@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { getDRDateBounds, isDateInDRHoy } from '../../utils/date.utils';
 import { Repository, Between, Like, MoreThanOrEqual, MoreThan } from 'typeorm';
 import { Venta } from '../../entities/venta.entity';
 import { Producto } from '../../entities/producto.entity';
@@ -44,8 +45,7 @@ export class VentasService {
       .orderBy('venta.fecha', 'DESC');
 
     if (fecha) {
-      const startDate = new Date(fecha + 'T00:00:00');
-      const endDate = new Date(fecha + 'T23:59:59.999');
+      const { startDate, endDate } = getDRDateBounds(fecha);
       query.andWhere('venta.fecha >= :startDate AND venta.fecha <= :endDate', { startDate, endDate });
     }
 
@@ -55,8 +55,7 @@ export class VentasService {
   }
 
   async getResumenCaja(fecha: string) {
-    const startDate = new Date(fecha + 'T00:00:00');
-    const endDate = new Date(fecha + 'T23:59:59.999');
+    const { startDate, endDate } = getDRDateBounds(fecha);
 
     const query = this.repo.createQueryBuilder('venta')
       .select('venta.metodoPago', 'metodoPago')
@@ -287,10 +286,7 @@ export class VentasService {
   }
 
   async getDashboardMetrics(fechaInicio?: string, fechaFin?: string) {
-    const today = new Date();
-    today.setHours(23, 59, 59, 999);
-    const startOfDay = new Date(today);
-    startOfDay.setHours(0, 0, 0, 0);
+    const { startDate: startOfDay, endDate: today } = getDRDateBounds();
     const startOfWeek = new Date(today);
     startOfWeek.setDate(today.getDate() - 7);
     startOfWeek.setHours(0, 0, 0, 0);
@@ -315,8 +311,10 @@ export class VentasService {
     let ventasCustom = [];
     let customStart: Date, customEnd: Date;
     if (fechaInicio && fechaFin) {
-       customStart = new Date(fechaInicio + 'T00:00:00');
-       customEnd = new Date(fechaFin + 'T23:59:59.999');
+       const boundsInicio = getDRDateBounds(fechaInicio);
+       const boundsFin = getDRDateBounds(fechaFin);
+       customStart = boundsInicio.startDate;
+       customEnd = boundsFin.endDate;
        
        if (customStart < minDate) {
            ventasCustom = await this.repo.find({
@@ -353,7 +351,7 @@ export class VentasService {
 
     allVentasConsidered.forEach(v => {
       const date = new Date(v.fecha);
-      const isHoy = date >= startOfDay && date <= today;
+      const isHoy = isDateInDRHoy(date);
       const isSemana = date >= startOfWeek && date <= today;
       const isMes = date.getFullYear() === currentYear && date.getMonth() === currentMonth;
       const isAnio = date.getFullYear() === currentYear;
