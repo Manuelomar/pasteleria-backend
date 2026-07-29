@@ -190,13 +190,7 @@ export class VentasService {
       totalsQuery.andWhere('venta.estadoPago = :estado', { estado: 'pendiente' });
     }
     
-    totalsQuery.select(
-      `SUM(item.cantidad * CASE 
-        WHEN venta.estadoPago = 'pendiente' THEN 0 
-        WHEN venta.estadoPago = 'parcial' THEN (venta.montoPagado / COALESCE(NULLIF(venta.total, 0), 1)) 
-        ELSE 1 
-      END)`, 'overallCantidad'
-    )
+    totalsQuery.select('SUM(item.cantidad)', 'overallCantidad')
     .addSelect(
       `SUM(item.cantidad * item.precio * CASE 
         WHEN venta.estadoPago = 'pendiente' THEN 0 
@@ -234,7 +228,7 @@ export class VentasService {
         clienteNombre: nombreCliente,
         producto: item.nombre,
         productoId: item.productoId,
-        cantidad: Number(item.cantidad) * ratio,
+        cantidad: Number(item.cantidad),
         precio: Number(item.precio),
         total: Number(item.cantidad) * Number(item.precio) * ratio,
       };
