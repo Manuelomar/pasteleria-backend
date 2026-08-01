@@ -305,13 +305,17 @@ export class VentasService {
   }
 
   async getDashboardMetrics(fechaInicio?: string, fechaFin?: string) {
-    const { startDate: startOfDay, endDate: today } = getDRDateBounds();
-    const startOfWeek = new Date(today);
-    startOfWeek.setDate(today.getDate() - 7);
-    startOfWeek.setHours(0, 0, 0, 0);
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const startOfYear = new Date(currentYear, 0, 1);
+    const now = new Date();
+    const currentDRTimeMs = now.getTime() - (4 * 3600000);
+    const currentDRDate = new Date(currentDRTimeMs);
+    const currentYear = currentDRDate.getUTCFullYear();
+    const currentMonth = currentDRDate.getUTCMonth();
+    
+    // startOfWeek: go back 7 days from current DR date
+    const startOfWeekDR = new Date(currentDRTimeMs - (7 * 24 * 3600000));
+    const startOfWeek = new Date(Date.UTC(startOfWeekDR.getUTCFullYear(), startOfWeekDR.getUTCMonth(), startOfWeekDR.getUTCDate(), 4, 0, 0, 0));
+    
+    const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 4, 0, 0, 0));
 
     // Fetch necessary data
     // To optimize, we fetch sales for the current year OR up to startOfWeek if the year just started
@@ -370,10 +374,14 @@ export class VentasService {
 
     allVentasConsidered.forEach(v => {
       const date = new Date(v.fecha);
+      const drTimeMs = date.getTime() - (4 * 3600000);
+      const drDate = new Date(drTimeMs);
+      
       const isHoy = isDateInDRHoy(date);
-      const isSemana = date >= startOfWeek && date <= today;
-      const isMes = date.getFullYear() === currentYear && date.getMonth() === currentMonth;
-      const isAnio = date.getFullYear() === currentYear;
+      // today equivalent for comparison is currentDRTimeMs
+      const isSemana = date >= startOfWeek; // Since minDate is bounded
+      const isMes = drDate.getUTCFullYear() === currentYear && drDate.getUTCMonth() === currentMonth;
+      const isAnio = drDate.getUTCFullYear() === currentYear;
 
       const ratio = getRatio(v);
 
@@ -437,13 +445,21 @@ export class VentasService {
     const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     const ventasSemanales = [];
     for (let i = 6; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
+      const d = new Date(currentDRTimeMs - (i * 24 * 3600000));
+      const drYear = d.getUTCFullYear();
+      const drMonth = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const drDay = String(d.getUTCDate()).padStart(2, '0');
+      const dateStr = `${drYear}-${drMonth}-${drDay}`;
+      
       const sum = allVentasConsidered
-        .filter(v => new Date(v.fecha).toISOString().split("T")[0] === dateStr)
+        .filter(v => {
+          const vDrMs = new Date(v.fecha).getTime() - (4 * 3600000);
+          const vDrD = new Date(vDrMs);
+          const vDateStr = `${vDrD.getUTCFullYear()}-${String(vDrD.getUTCMonth() + 1).padStart(2, '0')}-${String(vDrD.getUTCDate()).padStart(2, '0')}`;
+          return vDateStr === dateStr;
+        })
         .reduce((s, v) => s + ((Number(v.total) || 0) * getRatio(v)), 0);
-      ventasSemanales.push({ dia: days[d.getDay()], ventas: sum });
+      ventasSemanales.push({ dia: days[d.getUTCDay()], ventas: sum });
     }
 
     // Ventas Mensuales
@@ -452,10 +468,13 @@ export class VentasService {
     
     allVentasConsidered.forEach(v => {
       const date = new Date(v.fecha);
-      if (date.getFullYear() === currentYear) {
-        ventasMensuales[date.getMonth()].ventas += (Number(v.total) || 0) * getRatio(v);
-        ventasMensuales[date.getMonth()].subtotal += (Number(v.subtotal) || 0) * getRatio(v);
-        ventasMensuales[date.getMonth()].impuesto += (Number(v.impuesto) || 0) * getRatio(v);
+      const drTimeMs = date.getTime() - (4 * 3600000);
+      const drDate = new Date(drTimeMs);
+      if (drDate.getUTCFullYear() === currentYear) {
+        const monthIndex = drDate.getUTCMonth();
+        ventasMensuales[monthIndex].ventas += (Number(v.total) || 0) * getRatio(v);
+        ventasMensuales[monthIndex].subtotal += (Number(v.subtotal) || 0) * getRatio(v);
+        ventasMensuales[monthIndex].impuesto += (Number(v.impuesto) || 0) * getRatio(v);
       }
     });
 
