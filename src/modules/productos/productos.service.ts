@@ -120,6 +120,7 @@ export class ProductosService {
 
   async getUniqueNames(): Promise<Partial<Producto>[]> {
     const query = this.repo.createQueryBuilder('producto')
+      .where('producto.disponible = :disponible', { disponible: true })
       .select('DISTINCT(LOWER(producto.nombre))', 'lowerNombre')
       .addSelect('MAX(producto.nombre)', 'nombre')
       .addSelect('MAX(producto.categoria)', 'categoria')
