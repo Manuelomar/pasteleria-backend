@@ -17,6 +17,7 @@ import { SeedService } from './seed.service';
 import { EntregasModule } from './modules/entregas/entregas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { CategoriasModule } from './modules/categorias/categorias.module';
+import { SolicitudesModule } from './modules/solicitudes/solicitudes.module';
 
 @Module({
     imports: [
@@ -53,6 +54,7 @@ import { CategoriasModule } from './modules/categorias/categorias.module';
         EntregasModule,
         ReportesModule,
         CategoriasModule,
+        SolicitudesModule,
     ],
     controllers: [],
     providers: [
