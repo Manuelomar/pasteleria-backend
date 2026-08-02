@@ -11,11 +11,15 @@ export class ProductosService {
     private readonly repo: Repository<Producto>,
   ) {}
 
-  findAll(user?: any) {
+  findAll(user?: any, disponible?: boolean) {
     const query = this.repo.createQueryBuilder('producto');
     if (user && user.role === 'proveedor') {
-      query.where('producto.proveedorId = :proveedorId', { proveedorId: user.id });
+      query.andWhere('producto.proveedorId = :proveedorId', { proveedorId: user.id });
     }
+    if (disponible !== undefined) {
+      query.andWhere('producto.disponible = :disponible', { disponible });
+    }
+    query.orderBy('producto.nombre', 'ASC');
     return query.getMany();
   }
 

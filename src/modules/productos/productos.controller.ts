@@ -16,8 +16,9 @@ export class ProductosController {
   constructor(private readonly service: ProductosService) {}
 
   @Get()
-  findAll(@Request() req: any) {
-    return this.service.findAll(req.user);
+  findAll(@Request() req: any, @Query('disponible') disponible?: string) {
+    const isDisp = disponible === 'true' ? true : disponible === 'false' ? false : undefined;
+    return this.service.findAll(req.user, isDisp);
   }
 
   @Get('paged')
