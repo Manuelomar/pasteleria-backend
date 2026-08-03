@@ -59,6 +59,47 @@ export class SolicitudesController {
         return await this.service.createBizcocho(createDto, imagenReferencia);
     }
 
+    @Public()
+    @Post('combo')
+    @UseInterceptors(FileInterceptor('imagen', {
+        storage: diskStorage({
+            destination: (req, file, cb) => {
+                const path = './public/uploads/solicitudes';
+                if (!fs.existsSync(path)) {
+                    fs.mkdirSync(path, { recursive: true });
+                }
+                cb(null, path);
+            },
+            filename: (req, file, cb) => {
+                const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+                cb(null, uniqueSuffix + extname(file.originalname));
+            }
+        })
+    }))
+    async createCombo(
+        @Body() data: any,
+        @UploadedFile() file?: Express.Multer.File
+    ) {
+        let configuracion = null;
+        if (data.configuracion) {
+            try {
+                configuracion = typeof data.configuracion === 'string' ? JSON.parse(data.configuracion) : data.configuracion;
+            } catch (e) {}
+        }
+
+        const createDto = {
+            nombre: data.nombre,
+            apellido: data.apellido,
+            correo: data.correo,
+            telefono: data.telefono,
+            precioEstimado: data.precioEstimado ? parseFloat(data.precioEstimado) : null,
+            configuracion
+        };
+
+        const imagenReferencia = file ? `/uploads/solicitudes/${file.filename}` : undefined;
+        return await this.service.createCombo(createDto, imagenReferencia);
+    }
+
     @Get()
     findAll(@Query('tipo') tipo?: TipoSolicitud) {
         return this.service.findAll(tipo);
@@ -72,6 +113,11 @@ export class SolicitudesController {
     @Patch(':id/estado')
     updateEstado(@Param('id') id: string, @Body() updateDto: UpdateSolicitudEstadoDto) {
         return this.service.updateEstado(id, updateDto.estado);
+    }
+
+    @Patch(':id/configuracion')
+    updateConfiguracion(@Param('id') id: string, @Body() data: { configuracion: any }) {
+        return this.service.updateConfiguracion(id, data.configuracion);
     }
 
     @Delete(':id')

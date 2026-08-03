@@ -19,6 +19,15 @@ export class SolicitudesService {
         return await this.repository.save(solicitud);
     }
 
+    async createCombo(data: any, imagenReferencia?: string): Promise<Solicitud> {
+        const solicitud = this.repository.create({
+            ...data,
+            tipo: 'combo',
+            imagenReferencia
+        } as Partial<Solicitud>);
+        return await this.repository.save(solicitud);
+    }
+
     async findAll(tipo?: TipoSolicitud): Promise<Solicitud[]> {
         const query = this.repository.createQueryBuilder('s').orderBy('s.createdAt', 'DESC');
         if (tipo) {
@@ -38,6 +47,12 @@ export class SolicitudesService {
     async updateEstado(id: string, estado: EstadoSolicitud): Promise<Solicitud> {
         const solicitud = await this.findOne(id);
         solicitud.estado = estado;
+        return await this.repository.save(solicitud);
+    }
+
+    async updateConfiguracion(id: string, configuracion: any): Promise<Solicitud> {
+        const solicitud = await this.findOne(id);
+        solicitud.configuracion = configuracion;
         return await this.repository.save(solicitud);
     }
 

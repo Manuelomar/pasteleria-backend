@@ -52,6 +52,16 @@ export class ProductosController {
     return res;
   }
 
+  @Public()
+  @Get('public/all')
+  async findPublicAll(): Promise<Partial<Producto>[]> {
+    const productos = await this.service.findAll(null, true);
+    return productos.map((p) => {
+      const { precioCosto, historialCostos, ...publicProduct } = p;
+      return publicProduct as Partial<Producto>;
+    });
+  }
+
   @Get('unique')
   getUniqueNames() {
     return this.service.getUniqueNames();
