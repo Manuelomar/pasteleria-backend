@@ -114,23 +114,27 @@ export class VentasService {
       .addSelect('SUM(item.cantidad)', 'cantidad')
       .addSelect('SUM(item.cantidad * item.precio)', 'total')
       .groupBy('item.nombre')
-      .addGroupBy('item.productoId')
-      .orderBy('SUM(item.cantidad)', 'DESC');
+      .addGroupBy('item.productoId');
 
-    // To get total count of unique products sold
-    const countQuery = this.ventaItemRepo.createQueryBuilder('item')
-      .select('COUNT(DISTINCT item.nombre)', 'count');
-    const countResult = await countQuery.getRawOne();
-    const total = Number(countResult?.count || 0);
-
-    const dataRaw = await query.offset(skip).limit(pageSize).getRawMany();
+    const dataRaw = await query.getRawMany();
     
-    const data = dataRaw.map(r => ({
+    // Sort en memoria para asegurar que SUM y strings de Postgres no afecten el sort, además de sort secundario determinista
+    const dataFormatted = dataRaw.map(r => ({
       nombre: r.nombre,
       productoId: r.productoId,
       cantidad: Number(r.cantidad || 0),
       total: Number(r.total || 0),
     }));
+
+    dataFormatted.sort((a, b) => {
+      if (b.cantidad !== a.cantidad) {
+        return b.cantidad - a.cantidad;
+      }
+      return a.nombre.localeCompare(b.nombre);
+    });
+
+    const total = dataFormatted.length;
+    const data = dataFormatted.slice(skip, skip + pageSize);
 
     return {
       data,
@@ -239,7 +243,7 @@ export class VentasService {
         productoId: item.productoId,
         cantidad: Number(item.cantidad),
         precio: Number(item.precio),
-        total: Number(item.cantidad) * Number(item.precio) * ratio * discountRatio,
+        total: Number(item.cantidad) * Number(item.precio) * discountRatio,
       };
     });
 
