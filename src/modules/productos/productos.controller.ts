@@ -57,7 +57,7 @@ export class ProductosController {
   async findPublicAll(): Promise<Partial<Producto>[]> {
     const productos = await this.service.findAll(null, true);
     return productos
-      .filter(p => !p.proveedorId)
+      .filter(p => !p.proveedorId && p.tipo !== 'material')
       .map((p) => {
         const { precioCosto, historialCostos, ...publicProduct } = p;
         return publicProduct as Partial<Producto>;
