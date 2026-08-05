@@ -197,7 +197,10 @@ export class VentasService {
     totalsQuery.select('SUM(item.cantidad)', 'overallCantidad')
     .addSelect(
       `SUM(item.cantidad * item.precio * 
-        (1 - (COALESCE(venta.descuento, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))) * 
+        CASE 
+          WHEN venta.metodoPago = 'uberEats' THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
+          ELSE (1 - (COALESCE(venta.descuento, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1)))
+        END * 
         CASE 
           WHEN venta.estadoPago = 'pendiente' THEN 0 
           WHEN venta.estadoPago = 'parcial' THEN (venta.montoPagado / COALESCE(NULLIF(venta.total, 0), 1)) 
@@ -205,7 +208,12 @@ export class VentasService {
         END)`, 'overallTotal'
     )
     .addSelect(
-      `SUM(item.cantidad * (item.precio - COALESCE(item.precioCosto, 0)) * CASE 
+      `SUM(item.cantidad * (
+        (item.precio * CASE 
+          WHEN venta.metodoPago = 'uberEats' THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
+          ELSE (1 - (COALESCE(venta.descuento, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1)))
+        END) - COALESCE(item.precioCosto, 0)
+      ) * CASE 
         WHEN venta.estadoPago = 'pendiente' THEN 0 
         WHEN venta.estadoPago = 'parcial' THEN (venta.montoPagado / COALESCE(NULLIF(venta.total, 0), 1)) 
         ELSE 1 
@@ -229,10 +237,18 @@ export class VentasService {
 
       let discountRatio = 1;
       const ventaSubtotal = Number(item.venta?.subtotal) || 0;
+      const ventaTotal = Number(item.venta?.total) || 0;
       const ventaDescuento = Number(item.venta?.descuento) || 0;
-      if (ventaSubtotal > 0 && ventaDescuento > 0) {
+      
+      if (item.venta?.metodoPago === 'uberEats') {
+        if (ventaSubtotal > 0) {
+          discountRatio = ventaTotal / ventaSubtotal;
+        }
+      } else if (ventaSubtotal > 0 && ventaDescuento > 0) {
         discountRatio = (ventaSubtotal - ventaDescuento) / ventaSubtotal;
       }
+
+      const displayPrecio = Number(item.precio) * discountRatio;
 
       return {
         id: item.id,
@@ -242,8 +258,8 @@ export class VentasService {
         producto: item.nombre,
         productoId: item.productoId,
         cantidad: Number(item.cantidad),
-        precio: Number(item.precio),
-        total: Number(item.cantidad) * Number(item.precio) * discountRatio,
+        precio: displayPrecio,
+        total: Number(item.cantidad) * displayPrecio,
       };
     });
 
