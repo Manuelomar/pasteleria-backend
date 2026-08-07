@@ -6,3 +6,7 @@ dist/
 *.log
 
 .vercel
+
+# Database backups and scripts
+*.sql
+*.dump

@@ -110,6 +110,16 @@ export class ProductosController {
     return this.service.update(id, data);
   }
 
+  @Post(':id/add-stock')
+  addStock(@Param('id') id: string, @Body() data: { cantidad: number }) {
+    return this.service.addStock(id, data.cantidad);
+  }
+
+  @Post(':id/revert-stock')
+  revertStock(@Param('id') id: string, @Body() data: { cantidad: number }) {
+    return this.service.revertStock(id, data.cantidad);
+  }
+
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.service.remove(id);

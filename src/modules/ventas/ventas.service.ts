@@ -7,6 +7,7 @@ import { Producto } from '../../entities/producto.entity';
 import { VentaItem } from '../../entities/venta-item.entity';
 import { Cliente } from '../../entities/cliente.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { GastosService } from '../gastos/gastos.service';
 
 @Injectable()
 export class VentasService {
@@ -19,6 +20,7 @@ export class VentasService {
     private readonly ventaItemRepo: Repository<VentaItem>,
     @InjectRepository(Cliente)
     private readonly clienteRepo: Repository<Cliente>,
+    private readonly gastosService: GastosService,
   ) {}
 
   findAll() {
@@ -394,7 +396,7 @@ export class VentasService {
       return 1;
     };
 
-    const createEmptyStats = () => ({ ventas: 0, ganancia: 0, itbis: 0, sinItbis: 0, ordenes: 0 });
+    const createEmptyStats = () => ({ ventas: 0, ganancia: 0, gastos: 0, itbis: 0, sinItbis: 0, ordenes: 0 });
     const hoy = createEmptyStats();
     const semana = createEmptyStats();
     const mes = createEmptyStats();
@@ -425,7 +427,7 @@ export class VentasService {
       const imp = (Number(v.impuesto) || 0) * ratio;
       const desc = (Number(v.descuento) || 0) * ratio;
       const ingresoVenta = sub - desc;
-      const ganancia = ingresoVenta - (ventaCosto * ratio);
+      const ganancia = ingresoVenta; // COGS no se resta aquí, se restan los gastos de inventario
       const vTotal = (Number(v.total) || 0) * ratio;
 
       if (isHoy) {
@@ -464,6 +466,32 @@ export class VentasService {
           custom.itbis += imp;
           custom.sinItbis += sub;
           custom.ordenes += 1;
+        }
+      }
+    });
+
+    // Fetch and process Gastos
+    const allGastos = await this.gastosService.findAll();
+    allGastos.forEach(g => {
+      const date = new Date(g.fecha);
+      const drTimeMs = date.getTime() - (4 * 3600000);
+      const drDate = new Date(drTimeMs);
+      
+      const isHoy = isDateInDRHoy(date);
+      const isSemana = date >= startOfWeek;
+      const isMes = drDate.getUTCFullYear() === currentYear && drDate.getUTCMonth() === currentMonth;
+      const isAnio = drDate.getUTCFullYear() === currentYear;
+      
+      const montoGasto = Number(g.monto) || 0;
+
+      if (isHoy) { hoy.gastos += montoGasto; hoy.ganancia -= montoGasto; }
+      if (isSemana) { semana.gastos += montoGasto; semana.ganancia -= montoGasto; }
+      if (isMes) { mes.gastos += montoGasto; mes.ganancia -= montoGasto; }
+      if (isAnio) { anio.gastos += montoGasto; anio.ganancia -= montoGasto; }
+      
+      if (customStart && customEnd) {
+        if (date >= customStart && date <= customEnd) {
+          custom.gastos += montoGasto; custom.ganancia -= montoGasto;
         }
       }
     });

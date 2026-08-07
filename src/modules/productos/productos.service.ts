@@ -3,12 +3,14 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, IsNull, Not } from 'typeorm';
 import { Producto } from '../../entities/producto.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { GastosService } from '../gastos/gastos.service';
 
 @Injectable()
 export class ProductosService {
   constructor(
     @InjectRepository(Producto)
     private readonly repo: Repository<Producto>,
+    private readonly gastosService: GastosService
   ) {}
 
   findAll(user?: any, disponible?: boolean) {
@@ -41,7 +43,7 @@ export class ProductosService {
       queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId: user.id });
     } else if (proveedorId) {
       if (proveedorId === 'internos') {
-        queryBuilder.andWhere('producto.proveedorId IS NULL');
+        queryBuilder.andWhere('(producto.proveedorId IS NULL OR producto.proveedorId = :interno)', { interno: 'internos' });
       } else {
         queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId });
       }
@@ -94,7 +96,18 @@ export class ProductosService {
       }
     }
     const entity = this.repo.create(data);
-    return this.repo.save(entity);
+    const saved = await this.repo.save(entity);
+
+    if (saved.cantidad > 0 && saved.precioCosto > 0) {
+      const costoTotal = Number(saved.precioCosto) * saved.cantidad;
+      await this.gastosService.create({
+        descripcion: `Compra de stock inicial: ${saved.nombre} (${saved.cantidad} unds)`,
+        monto: costoTotal,
+        productoId: saved.id,
+      });
+    }
+
+    return saved;
   }
 
   async update(id: string, data: Partial<Producto>) {
@@ -114,6 +127,46 @@ export class ProductosService {
       }
     }
     await this.repo.update(id, data);
+    return this.findOne(id);
+  }
+
+  async addStock(id: string, cantidadAñadida: number) {
+    const producto = await this.findOne(id);
+    if (!producto) throw new BadRequestException('Producto no encontrado');
+
+    const newCantidad = (producto.cantidad ?? 0) + cantidadAñadida;
+    const newDisponible = newCantidad > 0 ? true : producto.disponible;
+
+    const costoTotal = (Number(producto.precioCosto) || 0) * cantidadAñadida;
+    if (costoTotal > 0) {
+      await this.gastosService.create({
+        descripcion: `Compra de stock: ${producto.nombre} (${cantidadAñadida} unds)`,
+        monto: costoTotal,
+        productoId: producto.id,
+      });
+    }
+
+    await this.repo.update(id, { cantidad: newCantidad, disponible: newDisponible });
+    return this.findOne(id);
+  }
+
+  async revertStock(id: string, cantidadRevertida: number) {
+    const producto = await this.findOne(id);
+    if (!producto) throw new BadRequestException('Producto no encontrado');
+
+    const newCantidad = Math.max(0, (producto.cantidad ?? 0) - cantidadRevertida);
+    const newDisponible = newCantidad > 0 ? true : producto.disponible;
+
+    const costoTotal = (Number(producto.precioCosto) || 0) * cantidadRevertida;
+    if (costoTotal > 0) {
+      await this.gastosService.create({
+        descripcion: `Corrección de stock (Reverso): ${producto.nombre} (-${cantidadRevertida} unds)`,
+        monto: -costoTotal, // Negative expense acts as a refund
+        productoId: producto.id,
+      });
+    }
+
+    await this.repo.update(id, { cantidad: newCantidad, disponible: newDisponible });
     return this.findOne(id);
   }
 
