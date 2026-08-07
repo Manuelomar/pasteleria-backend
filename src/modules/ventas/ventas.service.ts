@@ -248,7 +248,8 @@ export class VentasService {
         discountRatio = (ventaSubtotal - ventaDescuento) / ventaSubtotal;
       }
 
-      const displayPrecio = Number(item.precio) * discountRatio;
+      const precioOriginal = Number(item.precio);
+      const totalAjustado = precioOriginal * discountRatio;
 
       return {
         id: item.id,
@@ -258,8 +259,8 @@ export class VentasService {
         producto: item.nombre,
         productoId: item.productoId,
         cantidad: Number(item.cantidad),
-        precio: displayPrecio,
-        total: Number(item.cantidad) * displayPrecio,
+        precio: precioOriginal,
+        total: Number(item.cantidad) * totalAjustado,
       };
     });
 
@@ -424,7 +425,11 @@ export class VentasService {
       const sub = (Number(v.subtotal) || 0) * ratio;
       const imp = (Number(v.impuesto) || 0) * ratio;
       const desc = (Number(v.descuento) || 0) * ratio;
-      const ingresoVenta = sub - desc;
+      // Para UberEats el ingreso real es venta.total (ya lleva descontada la comisión de Uber).
+      // Para el resto: subtotal - descuento.
+      const ingresoVenta = v.metodoPago === 'uberEats'
+        ? (Number(v.total) || 0) * ratio
+        : sub - desc;
       const ganancia = ingresoVenta - (ventaCosto * ratio);
       const vTotal = (Number(v.total) || 0) * ratio;
 
