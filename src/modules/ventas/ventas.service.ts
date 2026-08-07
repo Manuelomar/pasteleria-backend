@@ -145,7 +145,7 @@ export class VentasService {
     };
   }
 
-  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10, estadoPagoFilter?: string) {
+  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10, estadoPagoFilter?: string, ventaSearch?: string) {
     const skip = (pageNumber - 1) * pageSize;
 
     const query = this.ventaItemRepo.createQueryBuilder('item')
@@ -164,6 +164,13 @@ export class VentasService {
     if (productoId && productoId !== 'all' && productoId !== '') {
       query.andWhere('item.productoId = :productoId', { productoId });
     }
+    if (ventaSearch && ventaSearch.trim() !== '') {
+      const search = `%${ventaSearch.trim()}%`;
+      query.andWhere(
+        '(LOWER(venta.factura) LIKE LOWER(:search) OR LOWER(COALESCE(cliente.nombre, venta.clienteNombre, \'\')) LIKE LOWER(:search))',
+        { search },
+      );
+    }
 
     if (estadoPagoFilter === 'pagadas') {
       query.andWhere('venta.estadoPago IN (:...estados)', { estados: ['pagado', 'parcial'] });
@@ -175,7 +182,8 @@ export class VentasService {
 
     // Get overall totals for the filtered data without pagination
     const totalsQuery = this.ventaItemRepo.createQueryBuilder('item')
-      .leftJoin('item.venta', 'venta');
+      .leftJoin('item.venta', 'venta')
+      .leftJoin('venta.cliente', 'cliente');
 
     if (desde) {
       const startDate = getDRDateBounds(desde).startDate;
@@ -187,6 +195,13 @@ export class VentasService {
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
       totalsQuery.andWhere('item.productoId = :productoId', { productoId });
+    }
+    if (ventaSearch && ventaSearch.trim() !== '') {
+      const search = `%${ventaSearch.trim()}%`;
+      totalsQuery.andWhere(
+        '(LOWER(venta.factura) LIKE LOWER(:search) OR LOWER(COALESCE(cliente.nombre, venta.clienteNombre, \'\')) LIKE LOWER(:search))',
+        { search },
+      );
     }
     if (estadoPagoFilter === 'pagadas') {
       totalsQuery.andWhere('venta.estadoPago IN (:...estados)', { estados: ['pagado', 'parcial'] });
@@ -273,6 +288,99 @@ export class VentasService {
       overallCantidad: Number(totalsResult?.overallCantidad || 0),
       overallTotal: Number(totalsResult?.overallTotal || 0),
       overallGanancia: Number(totalsResult?.overallGanancia || 0),
+    };
+  }
+
+  async getHistorialVentas(
+    desde?: string,
+    hasta?: string,
+    estadoPagoFilter?: string,
+    ventaSearch?: string,
+    pageNumber: number = 1,
+    pageSize: number = 20,
+  ) {
+    const skip = (pageNumber - 1) * pageSize;
+
+    const query = this.repo.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.cliente', 'cliente')
+      .leftJoinAndSelect('venta.items', 'items')
+      .orderBy('venta.fecha', 'DESC');
+
+    if (desde) {
+      const startDate = getDRDateBounds(desde).startDate;
+      query.andWhere('venta.fecha >= :startDate', { startDate });
+    }
+    if (hasta) {
+      const endDate = getDRDateBounds(hasta).endDate;
+      query.andWhere('venta.fecha <= :endDate', { endDate });
+    }
+    if (estadoPagoFilter === 'pagadas') {
+      query.andWhere('venta.estadoPago IN (:...estados)', { estados: ['pagado', 'parcial'] });
+    } else if (estadoPagoFilter === 'pendientes') {
+      query.andWhere('venta.estadoPago = :estado', { estado: 'pendiente' });
+    }
+    if (ventaSearch && ventaSearch.trim() !== '') {
+      const search = `%${ventaSearch.trim()}%`;
+      query.andWhere(
+        "(LOWER(venta.factura) LIKE LOWER(:search) OR LOWER(COALESCE(cliente.nombre, venta.clienteNombre, '')) LIKE LOWER(:search))",
+        { search },
+      );
+    }
+
+    const [ventas, total] = await query.skip(skip).take(pageSize).getManyAndCount();
+
+    const data = ventas.map(v => {
+      const clienteNombre = v.metodoPago === 'uberEats'
+        ? `UberEats - ${v.cliente?.nombre ?? v.clienteNombre ?? 'Cliente'}`
+        : (v.cliente?.nombre ?? v.clienteNombre ?? 'Consumidor Final');
+
+      const totalItems = v.items?.reduce((sum, it) => sum + Number(it.cantidad), 0) ?? 0;
+
+      return {
+        id: v.id,
+        fecha: v.fecha,
+        factura: v.factura,
+        clienteNombre,
+        totalItems,
+        subtotal: Number(v.subtotal),
+        descuento: Number(v.descuento),
+        impuesto: Number(v.impuesto),
+        total: Number(v.total),
+        metodoPago: v.metodoPago,
+        estadoPago: v.estadoPago,
+        montoPagado: Number(v.montoPagado),
+        balance: Number(v.balance),
+      };
+    });
+
+    // Totales globales para el resumen
+    const totalsRaw = await this.repo.createQueryBuilder('venta')
+      .leftJoin('venta.cliente', 'cliente')
+      .select('SUM(venta.total)', 'overallTotal')
+      .where((() => {
+        const conds: string[] = [];
+        if (desde) conds.push('venta.fecha >= :startDate');
+        if (hasta) conds.push('venta.fecha <= :endDate');
+        if (estadoPagoFilter === 'pagadas') conds.push("venta.estadoPago IN ('pagado', 'parcial')");
+        else if (estadoPagoFilter === 'pendientes') conds.push("venta.estadoPago = 'pendiente'");
+        if (ventaSearch && ventaSearch.trim() !== '') {
+          conds.push("(LOWER(venta.factura) LIKE LOWER(:search) OR LOWER(COALESCE(cliente.nombre, venta.clienteNombre, '')) LIKE LOWER(:search))");
+        }
+        return conds.length > 0 ? conds.join(' AND ') : '1=1';
+      })(), {
+        ...(desde ? { startDate: getDRDateBounds(desde).startDate } : {}),
+        ...(hasta ? { endDate: getDRDateBounds(hasta).endDate } : {}),
+        ...(ventaSearch?.trim() ? { search: `%${ventaSearch.trim()}%` } : {}),
+      })
+      .getRawOne();
+
+    return {
+      data,
+      total,
+      page: pageNumber,
+      pageSize,
+      totalPages: Math.ceil(total / pageSize),
+      overallTotal: Number(totalsRaw?.overallTotal || 0),
     };
   }
 
