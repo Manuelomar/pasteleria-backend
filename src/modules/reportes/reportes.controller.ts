@@ -59,11 +59,13 @@ export class ReportesController {
   async getReporteGanancias(
     @Query('fechaInicio') fechaInicio: string,
     @Query('fechaFin') fechaFin: string,
+    @Query('productoId') productoId: string,
     @Res() res: Response,
   ) {
     const html = await this.reportesService.generarReporteGanancias(
       fechaInicio,
       fechaFin,
+      productoId,
     );
     
     res.setHeader('Content-Type', 'text/html');

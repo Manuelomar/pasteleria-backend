@@ -122,6 +122,7 @@ export class ReportesService {
   async generarReporteGanancias(
     fechaInicio?: string,
     fechaFin?: string,
+    productoId?: string,
   ): Promise<string> {
     const qb = this.ventaRepository.createQueryBuilder('venta')
       .leftJoinAndSelect('venta.items', 'items')
@@ -156,6 +157,32 @@ export class ReportesService {
         }
       }
     });
+
+    if (productoId && productoId !== 'all' && productoId !== '') {
+      ventas = ventas.filter(v => v.items && v.items.some(i => i.productoId === productoId));
+      ventas.forEach(v => {
+        v.items = v.items.filter(i => i.productoId === productoId);
+        
+        const uberRatio = v.metodoPago === 'uberEats' 
+          ? (Number(v.total) || 0) / (Number(v.subtotal) || 1) 
+          : 1;
+        const discountRatio = v.metodoPago !== 'uberEats'
+          ? 1 - ((Number(v.descuento) || 0) / (Number(v.subtotal) || 1))
+          : 1;
+
+        const effectiveRatio = uberRatio * discountRatio;
+        
+        let nuevoIngreso = 0;
+        v.items.forEach(i => {
+           nuevoIngreso += Number(i.precio) * Number(i.cantidad) * effectiveRatio;
+        });
+        
+        v.subtotal = nuevoIngreso as any;
+        v.descuento = 0 as any;
+        v.impuesto = 0 as any;
+        v.total = nuevoIngreso as any;
+      });
+    }
 
     const html = ejs.render(reporteGananciasTemplate, {
       ventas,
