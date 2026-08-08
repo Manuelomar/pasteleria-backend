@@ -158,10 +158,11 @@ export class ReportesService {
       }
     });
 
-    if (productoId && productoId !== 'all' && productoId !== '') {
-      ventas = ventas.filter(v => v.items && v.items.some(i => i.productoId === productoId));
+    if (productoId && productoId !== 'all' && productoId !== 'todos' && productoId !== '') {
+      const targetIds = productoId.split(',').map(id => id.trim());
+      ventas = ventas.filter(v => v.items && v.items.some(i => targetIds.includes(i.productoId)));
       ventas.forEach(v => {
-        v.items = v.items.filter(i => i.productoId === productoId);
+        v.items = v.items.filter(i => targetIds.includes(i.productoId));
         
         const uberRatio = v.metodoPago === 'uberEats' 
           ? (Number(v.total) || 0) / (Number(v.subtotal) || 1) 
