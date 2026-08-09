@@ -442,7 +442,7 @@ export class VentasService {
     return { deleted: true };
   }
 
-  async getDashboardMetrics(fechaInicio?: string, fechaFin?: string) {
+  async getDashboardMetrics(fechaInicio?: string, fechaFin?: string, filterType: string = 'hoy') {
     const now = new Date();
     const currentDRTimeMs = now.getTime() - (4 * 3600000);
     const currentDRDate = new Date(currentDRTimeMs);
@@ -583,6 +583,28 @@ export class VentasService {
 
     const stats = { hoy, semana, mes, anio, custom };
 
+    let chartVentas = allVentasConsidered;
+    if (filterType === 'hoy') {
+        chartVentas = allVentasConsidered.filter(v => isDateInDRHoy(new Date(v.fecha)));
+    } else if (filterType === 'semana') {
+        chartVentas = allVentasConsidered.filter(v => new Date(v.fecha) >= startOfWeek);
+    } else if (filterType === 'mes') {
+        chartVentas = allVentasConsidered.filter(v => {
+           const drDate = new Date(new Date(v.fecha).getTime() - (4 * 3600000));
+           return drDate.getUTCFullYear() === currentYear && drDate.getUTCMonth() === currentMonth;
+        });
+    } else if (filterType === 'anio') {
+        chartVentas = allVentasConsidered.filter(v => {
+           const drDate = new Date(new Date(v.fecha).getTime() - (4 * 3600000));
+           return drDate.getUTCFullYear() === currentYear;
+        });
+    } else if (filterType === 'custom' && customStart && customEnd) {
+        chartVentas = allVentasConsidered.filter(v => {
+           const d = new Date(v.fecha);
+           return d >= customStart && d <= customEnd;
+        });
+    }
+
     // Ventas Semanales
     const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     const ventasSemanales = [];
@@ -593,7 +615,7 @@ export class VentasService {
       const drDay = String(d.getUTCDate()).padStart(2, '0');
       const dateStr = `${drYear}-${drMonth}-${drDay}`;
       
-      const sum = allVentasConsidered
+      const sum = chartVentas
         .filter(v => {
           const vDrMs = new Date(v.fecha).getTime() - (4 * 3600000);
           const vDrD = new Date(vDrMs);
@@ -608,7 +630,7 @@ export class VentasService {
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const ventasMensuales = months.map(mes => ({ mes, ventas: 0, subtotal: 0, impuesto: 0 }));
     
-    allVentasConsidered.forEach(v => {
+    chartVentas.forEach(v => {
       const date = new Date(v.fecha);
       const drTimeMs = date.getTime() - (4 * 3600000);
       const drDate = new Date(drTimeMs);
@@ -627,7 +649,7 @@ export class VentasService {
       Bebida: "var(--color-chart-3)",
     };
     const catMap: Record<string, number> = { Dulce: 0, Salado: 0, Bebida: 0 };
-    allVentasConsidered.forEach(v => {
+    chartVentas.forEach(v => {
       if (v.items) {
           v.items.forEach(item => {
             const prod = productos.find(p => p.id === item.productoId);
@@ -653,7 +675,7 @@ export class VentasService {
     };
     const mapMet: Record<string, number> = { Efectivo: 0, Tarjeta: 0, Transferencia: 0, UberEats: 0 };
     
-    allVentasConsidered.forEach(v => {
+    chartVentas.forEach(v => {
       const met = v.metodoPago === "efectivo" ? "Efectivo" : 
                   v.metodoPago === "tarjeta" ? "Tarjeta" : 
                   v.metodoPago === "uberEats" ? "UberEats" : "Transferencia";

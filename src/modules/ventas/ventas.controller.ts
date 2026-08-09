@@ -27,8 +27,9 @@ export class VentasController {
   getDashboardMetrics(
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
+    @Query('filterType') filterType?: string,
   ) {
-    return this.service.getDashboardMetrics(fechaInicio, fechaFin);
+    return this.service.getDashboardMetrics(fechaInicio, fechaFin, filterType);
   }
 
   @Get()
