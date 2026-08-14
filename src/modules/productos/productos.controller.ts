@@ -40,8 +40,10 @@ export class ProductosController {
     @Query() paginationDto: PaginationDto,
     @Query('search') search?: string,
     @Query('tipo') tipo?: string,
+    @Query('disponible') disponible?: string,
   ): Promise<PaginatedResponseDto<Partial<Producto>>> {
-    const res = await this.service.findAllPaged(paginationDto, search, tipo, undefined, null, 'internos');
+    const isDisp = disponible === 'true' ? true : disponible === 'false' ? false : undefined;
+    const res = await this.service.findAllPaged(paginationDto, search, tipo, isDisp, null, 'internos');
     
     // Clean sensitive data
     res.data = res.data.map((p) => {
