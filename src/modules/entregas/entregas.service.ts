@@ -78,9 +78,36 @@ export class EntregasService {
         return this.entregaRepository.save(entrega);
     }
 
+    async findAll(user: any, filtro?: string) {
+        const query = this.entregaRepository.createQueryBuilder('entrega')
+            .leftJoinAndSelect('entrega.proveedor', 'proveedor')
+            .leftJoinAndSelect('entrega.items', 'items')
+            .leftJoinAndSelect('items.producto', 'producto');
+        
+        if (user.role === 'proveedor') {
+            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
+        }
+        
+        if (filtro && filtro !== 'todos') {
+            if (filtro === 'pendiente') {
+                query.andWhere('entrega.estadoEntrega = :estadoE AND entrega.estadoPago = :estadoP', { estadoE: 'en_espera', estadoP: 'pendiente_pago' });
+            } else if (filtro === 'pagado_no_entregado') {
+                query.andWhere('entrega.estadoEntrega = :estadoE AND entrega.estadoPago = :estadoP', { estadoE: 'en_espera', estadoP: 'pagado' });
+            } else if (filtro === 'entregado_no_pagado') {
+                query.andWhere('entrega.estadoEntrega = :estadoE AND entrega.estadoPago = :estadoP', { estadoE: 'entregada', estadoP: 'pendiente_pago' });
+            } else if (filtro === 'finalizado') {
+                query.andWhere('entrega.estadoEntrega = :estadoE AND entrega.estadoPago = :estadoP', { estadoE: 'entregada', estadoP: 'pagado' });
+            }
+        }
+
+        query.orderBy('entrega.createdAt', 'DESC');
+        
+        return query.getMany();
+    }
+
     async findAllPaged(paginationDto: PaginationDto, user: any, filtro?: string, search?: string): Promise<PaginatedResponseDto<Entrega>> {
-        const { page = 1, limit = 10 } = paginationDto;
-        const skip = (page - 1) * limit;
+        const { pageNumber = 1, pageSize = 10 } = paginationDto;
+        const skip = (pageNumber - 1) * pageSize;
 
         const query = this.entregaRepository.createQueryBuilder('entrega')
             .leftJoinAndSelect('entrega.proveedor', 'proveedor')
@@ -108,16 +135,16 @@ export class EntregasService {
         }
         
         query.orderBy('entrega.createdAt', 'DESC');
-        query.skip(skip).take(limit);
+        query.skip(skip).take(pageSize);
 
         const [items, total] = await query.getManyAndCount();
 
         return {
-            items,
+            data: items,
             total,
-            page: Number(page),
-            pageSize: Number(limit),
-            totalPages: Math.ceil(total / limit)
+            page: Number(pageNumber),
+            pageSize: Number(pageSize),
+            totalPages: Math.ceil(total / pageSize)
         };
     }
 

@@ -16,8 +16,8 @@ export class ClientesService {
   }
 
   async findAllPaged(paginationDto: PaginationDto, search?: string): Promise<PaginatedResponseDto<Cliente>> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
+    const { pageNumber = 1, pageSize = 10 } = paginationDto;
+    const skip = (pageNumber - 1) * pageSize;
 
     const queryBuilder = this.repo.createQueryBuilder('cliente');
 
@@ -28,16 +28,16 @@ export class ClientesService {
     }
 
     queryBuilder.orderBy('cliente.createdAt', 'DESC');
-    queryBuilder.skip(skip).take(limit);
+    queryBuilder.skip(skip).take(pageSize);
 
     const [items, total] = await queryBuilder.getManyAndCount();
 
     return {
-      items,
+      data: items,
       total,
-      page: Number(page),
-      pageSize: Number(limit),
-      totalPages: Math.ceil(total / limit),
+      page: Number(pageNumber),
+      pageSize: Number(pageSize),
+      totalPages: Math.ceil(total / pageSize),
     };
   }
 
