@@ -2,6 +2,7 @@ import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, 
 import { EntregasService, CreateEntregaDto } from './entregas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @Controller('entregas')
 @UseGuards(JwtAuthGuard)
@@ -19,6 +20,16 @@ export class EntregasController {
     @Get()
     findAll(@Request() req, @Query('filtro') filtro?: string) {
         return this.entregasService.findAll(req.user, filtro);
+    }
+
+    @Get('paged')
+    findAllPaged(
+        @Query() paginationDto: PaginationDto,
+        @Request() req,
+        @Query('filtro') filtro?: string,
+        @Query('search') search?: string
+    ) {
+        return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search);
     }
 
     @Patch(':id/estado-entrega')

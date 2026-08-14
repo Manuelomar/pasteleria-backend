@@ -36,6 +36,37 @@ export class VentasService {
     });
   }
 
+  async getPendientesPaged(paginationDto: PaginationDto, search?: string): Promise<PaginatedResponseDto<Venta>> {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const query = this.repo.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.cliente', 'cliente')
+      .leftJoinAndSelect('venta.items', 'items')
+      .where('(venta.estadoPago = :pendiente OR venta.estadoPago = :parcial)', { pendiente: 'pendiente', parcial: 'parcial' })
+      .andWhere('venta.balance > 0');
+
+    if (search) {
+      query.andWhere(
+        '(venta.factura ILIKE :search OR cliente.nombre ILIKE :search OR venta.clienteNombre ILIKE :search)',
+        { search: `%${search}%` }
+      );
+    }
+
+    query.orderBy('venta.fecha', 'ASC');
+    query.skip(skip).take(limit);
+
+    const [items, total] = await query.getManyAndCount();
+
+    return {
+        items,
+        total,
+        page: Number(page),
+        pageSize: Number(limit),
+        totalPages: Math.ceil(total / limit)
+    };
+  }
+
   async findAllPaged(paginationDto: PaginationDto, fecha?: string): Promise<PaginatedResponseDto<Venta>> {
     const { pageNumber = 1, pageSize = 10 } = paginationDto;
     const skip = (pageNumber - 1) * pageSize;

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull } from 'typeorm';
 import { Entrega, EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { Producto } from '../../entities/producto.entity';
+import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 
 import { IsString, IsDateString, IsArray, IsNotEmpty, IsOptional, ValidateNested, IsNumber } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -77,15 +78,17 @@ export class EntregasService {
         return this.entregaRepository.save(entrega);
     }
 
-    async findAll(user: any, filtro?: string) {
+    async findAllPaged(paginationDto: PaginationDto, user: any, filtro?: string, search?: string): Promise<PaginatedResponseDto<Entrega>> {
+        const { page = 1, limit = 10 } = paginationDto;
+        const skip = (page - 1) * limit;
+
         const query = this.entregaRepository.createQueryBuilder('entrega')
             .leftJoinAndSelect('entrega.proveedor', 'proveedor')
             .leftJoinAndSelect('entrega.items', 'items')
-            .leftJoinAndSelect('items.producto', 'producto')
-            .orderBy('entrega.createdAt', 'DESC');
+            .leftJoinAndSelect('items.producto', 'producto');
         
         if (user.role === 'proveedor') {
-            query.where('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
+            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
         }
         
         if (filtro && filtro !== 'todos') {
@@ -99,8 +102,23 @@ export class EntregasService {
                 query.andWhere('entrega.estadoEntrega = :estadoE AND entrega.estadoPago = :estadoP', { estadoE: 'entregada', estadoP: 'pagado' });
             }
         }
+
+        if (search) {
+            query.andWhere('proveedor.nombre ILIKE :search', { search: `%${search}%` });
+        }
         
-        return query.getMany();
+        query.orderBy('entrega.createdAt', 'DESC');
+        query.skip(skip).take(limit);
+
+        const [items, total] = await query.getManyAndCount();
+
+        return {
+            items,
+            total,
+            page: Number(page),
+            pageSize: Number(limit),
+            totalPages: Math.ceil(total / limit)
+        };
     }
 
     async updateEstadoEntrega(id: string, estado: EstadoEntrega) {

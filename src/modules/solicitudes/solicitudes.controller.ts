@@ -9,6 +9,7 @@ import { CreateSolicitudBizcochoDto } from './dto/create-solicitud-bizcocho.dto'
 import { UpdateSolicitudEstadoDto } from './dto/update-solicitud-estado.dto';
 import { Public } from '../../decorators/public.decorator';
 import { TipoSolicitud } from '../../entities/solicitud.entity';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @ApiTags('Solicitudes')
 @Controller('solicitudes')
@@ -103,6 +104,14 @@ export class SolicitudesController {
     @Get()
     findAll(@Query('tipo') tipo?: TipoSolicitud) {
         return this.service.findAll(tipo);
+    }
+
+    @Get('paged')
+    findAllPaged(
+        @Query() paginationDto: PaginationDto,
+        @Query('tipo') tipo?: TipoSolicitud
+    ) {
+        return this.service.findAllPaged(paginationDto, tipo);
     }
 
     @Get(':id')

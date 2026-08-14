@@ -23,6 +23,14 @@ export class VentasController {
     return this.service.getPendientes();
   }
 
+  @Get('pendientes/paged')
+  getPendientesPaged(
+    @Query() paginationDto: PaginationDto,
+    @Query('search') search?: string,
+  ) {
+    return this.service.getPendientesPaged(paginationDto, search);
+  }
+
   @Get('dashboard-metrics')
   getDashboardMetrics(
     @Query('fechaInicio') fechaInicio?: string,
