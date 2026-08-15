@@ -646,7 +646,7 @@ export class VentasService {
       const drDay = String(d.getUTCDate()).padStart(2, '0');
       const dateStr = `${drYear}-${drMonth}-${drDay}`;
       
-      const sum = chartVentas
+      const sum = allVentasConsidered
         .filter(v => {
           const vDrMs = new Date(v.fecha).getTime() - (4 * 3600000);
           const vDrD = new Date(vDrMs);
@@ -661,7 +661,7 @@ export class VentasService {
     const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
     const ventasMensuales = months.map(mes => ({ mes, ventas: 0, subtotal: 0, impuesto: 0 }));
     
-    chartVentas.forEach(v => {
+    allVentasConsidered.forEach(v => {
       const date = new Date(v.fecha);
       const drTimeMs = date.getTime() - (4 * 3600000);
       const drDate = new Date(drTimeMs);
