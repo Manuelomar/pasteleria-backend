@@ -624,4 +624,178 @@ export const reporteVentasTemplate = `
     </div>
 </body>
 </html>
-`;;
+`;
+
+export const reporteCostosTemplate = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Costos</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f9fafb;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: #fff;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #f3f4f6;
+            padding-bottom: 20px;
+        }
+        .header h1 {
+            margin: 0;
+            color: #1f2937;
+            font-size: 28px;
+        }
+        .header p {
+            color: #6b7280;
+            margin: 5px 0 0 0;
+            font-size: 14px;
+        }
+        .filters-info {
+            background-color: #f8fafc;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .filters-info strong {
+            color: #475569;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 13px;
+        }
+        th, td {
+            padding: 12px 10px;
+            border-bottom: 1px solid #e5e7eb;
+            text-align: left;
+        }
+        th {
+            background-color: #f9fafb;
+            font-weight: 600;
+            color: #4b5563;
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.5px;
+        }
+        .text-right {
+            text-align: right;
+        }
+        .total-row td {
+            font-weight: bold;
+            background-color: #f9fafb;
+            border-top: 2px solid #e5e7eb;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            font-size: 12px;
+            color: #9ca3af;
+        }
+        @page {
+            margin: 0;
+        }
+        @media print {
+            body { 
+                background-color: #fff; 
+                padding: 15mm; 
+            }
+            .container { 
+                box-shadow: none; 
+                padding: 0; 
+                max-width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Reporte de Costos</h1>
+            <p>Generado el <%= new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true }).format(new Date()) %></p>
+        </div>
+
+        <div class="filters-info">
+            <strong>Filtros aplicados:</strong><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? new Date(filtros.fechaInicio).toLocaleDateString() : 'Ninguno' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? new Date(filtros.fechaFin).toLocaleDateString() : 'Ninguno' %><br>
+        </div>
+
+        <% if (ventas.length === 0) { %>
+            <div style="text-align: center; padding: 40px; color: #6b7280; background: #f9fafb; border-radius: 8px;">
+                No hay ventas en este rango de fechas.
+            </div>
+        <% } else { %>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Factura</th>
+                        <th>Productos (Cant)</th>
+                        <th class="text-right">Total Costos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% 
+                        let granCostos = 0;
+                        
+                        ventas.forEach(function(venta) { 
+                            let ventaCostoTotal = 0;
+                            if (venta.items && venta.items.length > 0) {
+                                venta.items.forEach(function(item) {
+                                    ventaCostoTotal += (Number(item.precioCosto) || 0) * Number(item.cantidad);
+                                });
+                            }
+                            
+                            granCostos += ventaCostoTotal;
+                        %>
+                        <tr>
+                            <td><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(venta.createdAt)) %></td>
+                            <td><%= venta.factura %></td>
+                            <td>
+                                <% if (venta.items && venta.items.length > 0) { %>
+                                    <ul style="margin: 0; padding-left: 15px;">
+                                    <% venta.items.forEach(function(item) { %>
+                                        <li><%= item.producto ? item.producto.nombre : 'Producto' %> (<%= item.cantidad %>)</li>
+                                    <% }); %>
+                                    </ul>
+                                <% } else { %>
+                                    -
+                                <% } %>
+                            </td>
+                            <td class="text-right"><%= 'RD$ ' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(ventaCostoTotal) %></td>
+                        </tr>
+                    <% }); %>
+                </tbody>
+                <tfoot>
+                    <tr class="total-row">
+                        <td colspan="3" class="text-right">Total de Costos:</td>
+                        <td class="text-right"><%= 'RD$ ' + new Intl.NumberFormat('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}).format(granCostos) %></td>
+                    </tr>
+                </tfoot>
+            </table>
+        <% } %>
+
+        <div class="footer">
+            Bizcochao Pastelería - Sistema de Facturación
+        </div>
+    </div>
+</body>
+</html>
+`;

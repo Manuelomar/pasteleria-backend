@@ -192,5 +192,57 @@ export class ReportesService {
 
     return html;
   }
+
+  async generarReporteCostos(
+    fechaInicio?: string,
+    fechaFin?: string,
+    productoId?: string,
+  ): Promise<string> {
+    const qb = this.ventaRepository.createQueryBuilder('venta')
+      .leftJoinAndSelect('venta.items', 'items')
+      .leftJoinAndSelect('items.producto', 'producto');
+
+    if (fechaInicio) {
+      const startDate = getDRDateBounds(fechaInicio).startDate;
+      qb.andWhere('venta.fecha >= :fechaInicio', { fechaInicio: startDate });
+    }
+    if (fechaFin) {
+      const endDate = getDRDateBounds(fechaFin).endDate;
+      qb.andWhere('venta.fecha <= :fechaFin', { fechaFin: endDate });
+    }
+
+    qb.orderBy('venta.createdAt', 'DESC');
+
+    let ventas = await qb.getMany();
+
+    // Ajustar para contabilidad de caja igual que en el Dashboard
+    ventas = ventas.filter(v => v.estadoPago !== 'pendiente');
+    ventas.forEach(v => {
+      if (v.estadoPago === 'parcial') {
+        const ratio = (Number(v.total) || 1) > 0 ? (Number(v.montoPagado) || 0) / (Number(v.total) || 1) : 0;
+        if (v.items) {
+          v.items.forEach(item => {
+            item.cantidad = (Number(item.cantidad) || 0) * ratio as any;
+          });
+        }
+      }
+    });
+
+    if (productoId && productoId !== 'all' && productoId !== 'todos' && productoId !== '') {
+      const targetIds = productoId.split(',').map(id => id.trim());
+      ventas = ventas.filter(v => v.items && v.items.some(i => targetIds.includes(i.productoId)));
+      ventas.forEach(v => {
+        v.items = v.items.filter(i => targetIds.includes(i.productoId));
+      });
+    }
+
+    const { reporteCostosTemplate } = await import('./reportes.template');
+    const html = ejs.render(reporteCostosTemplate, {
+      ventas,
+      filtros: { fechaInicio, fechaFin }
+    });
+
+    return html;
+  }
 }
 

@@ -71,4 +71,21 @@ export class ReportesController {
     res.setHeader('Content-Type', 'text/html');
     res.send(html);
   }
+
+  @Get('costos')
+  async getReporteCostos(
+    @Query('fechaInicio') fechaInicio: string,
+    @Query('fechaFin') fechaFin: string,
+    @Query('productoId') productoId: string,
+    @Res() res: Response,
+  ) {
+    const html = await this.reportesService.generarReporteCostos(
+      fechaInicio,
+      fechaFin,
+      productoId,
+    );
+    
+    res.setHeader('Content-Type', 'text/html');
+    res.send(html);
+  }
 }
