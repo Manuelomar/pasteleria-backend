@@ -133,8 +133,8 @@ export const reporteProveedorTemplate = `
 
         <div class="filters-info">
             <strong>Filtros aplicados:</strong><br>
-            Fecha Inicio: <%= filtros.fechaInicio ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaInicio)) : 'N/A' %> | 
-            Fecha Fin: <%= filtros.fechaFin ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaFin)) : 'N/A' %><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaInicio) : 'N/A' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaFin) : 'N/A' %><br>
             Estado de Pago: 
             <%= filtros.pagoPendiente ? '[x] Pendiente ' : '' %>
             <%= filtros.pagoPagado ? '[x] Pagado ' : '' %>
@@ -160,7 +160,7 @@ export const reporteProveedorTemplate = `
                         <% granTotal += Number(entrega.totalCosto); %>
                         <% const rowspan = Math.max(1, entrega.items ? entrega.items.length : 1); %>
                         <tr>
-                            <td rowspan="<%= rowspan %>"><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(entrega.createdAt)) %></td>
+                            <td rowspan="<%= rowspan %>"><%= new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(entrega.createdAt)) %></td>
                             <td rowspan="<%= rowspan %>"><%= entrega.proveedor ? entrega.proveedor.name : 'Desconocido' %></td>
                             <td rowspan="<%= rowspan %>">
                                 <span class="status status-<%= entrega.estadoEntrega %>">
@@ -334,8 +334,8 @@ export const reporteGananciasTemplate = `
 
         <div class="filters-info">
             <strong>Filtros aplicados:</strong><br>
-            Fecha Inicio: <%= filtros.fechaInicio ? new Date(filtros.fechaInicio).toLocaleDateString() : 'Ninguno' %> | 
-            Fecha Fin: <%= filtros.fechaFin ? new Date(filtros.fechaFin).toLocaleDateString() : 'Ninguno' %><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaInicio) : 'Ninguno' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaFin) : 'Ninguno' %><br>
         </div>
 
         <% if (ventas.length === 0) { %>
@@ -382,7 +382,7 @@ export const reporteGananciasTemplate = `
                             granGanancia += gananciaVenta;
                         %>
                         <tr>
-                            <td><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(venta.createdAt)) %></td>
+                            <td><%= new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(venta.createdAt)) %></td>
                             <td><%= venta.factura %></td>
                             <td>
                                 <% if (venta.items && venta.items.length > 0) { %>
@@ -544,8 +544,8 @@ export const reporteVentasTemplate = `
 
         <div class="filters-info">
             <strong>Filtros aplicados:</strong><br>
-            Fecha Inicio: <%= filtros.fechaInicio ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaInicio)) : 'N/A' %> | 
-            Fecha Fin: <%= filtros.fechaFin ? (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(filtros.fechaFin)) : 'N/A' %><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaInicio) : 'N/A' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaFin) : 'N/A' %><br>
             Métodos de Pago: 
             <%= (filtros.metodosPago && filtros.metodosPago.length > 0) ? filtros.metodosPago.join(', ') : 'Todos' %>
         </div>
@@ -580,7 +580,7 @@ export const reporteVentasTemplate = `
                             granTotal += Number(venta.total); 
                         %>
                         <tr>
-                            <td><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(venta.createdAt)) %></td>
+                            <td><%= new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(venta.createdAt)) %></td>
                             <td><%= venta.factura %></td>
                             <td><%= (venta.cliente && venta.cliente.nombre) ? venta.cliente.nombre : (venta.clienteNombre || 'Cliente General') %></td>
                             <td style="text-transform: capitalize;"><%= venta.metodoPago === 'uberEats' ? 'UberEats' : venta.metodoPago %></td>
@@ -733,8 +733,8 @@ export const reporteCostosTemplate = `
 
         <div class="filters-info">
             <strong>Filtros aplicados:</strong><br>
-            Fecha Inicio: <%= filtros.fechaInicio ? new Date(filtros.fechaInicio).toLocaleDateString() : 'Ninguno' %> | 
-            Fecha Fin: <%= filtros.fechaFin ? new Date(filtros.fechaFin).toLocaleDateString() : 'Ninguno' %><br>
+            Fecha Inicio: <%= filtros.fechaInicio ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaInicio) : 'Ninguno' %> | 
+            Fecha Fin: <%= filtros.fechaFin ? (function(s){ const [y,m,d] = s.split('-'); return d+'/'+m+'/'+y; })(filtros.fechaFin) : 'Ninguno' %><br>
         </div>
 
         <% if (ventas.length === 0) { %>
@@ -766,7 +766,7 @@ export const reporteCostosTemplate = `
                             granCostos += ventaCostoTotal;
                         %>
                         <tr>
-                            <td><%= (function(d){ const pad=n=>n.toString().padStart(2,'0'); return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear() })(new Date(venta.createdAt)) %></td>
+                            <td><%= new Intl.DateTimeFormat('es-DO', { timeZone: 'America/Santo_Domingo', day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(venta.createdAt)) %></td>
                             <td><%= venta.factura %></td>
                             <td>
                                 <% if (venta.items && venta.items.length > 0) { %>
