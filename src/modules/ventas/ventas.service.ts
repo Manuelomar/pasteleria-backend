@@ -37,8 +37,8 @@ export class VentasService {
   }
 
   async getPendientesPaged(paginationDto: PaginationDto, search?: string): Promise<PaginatedResponseDto<Venta>> {
-    const { page = 1, limit = 10 } = paginationDto;
-    const skip = (page - 1) * limit;
+    const { pageNumber = 1, pageSize = 10 } = paginationDto;
+    const skip = (pageNumber - 1) * pageSize;
 
     const query = this.repo.createQueryBuilder('venta')
       .leftJoinAndSelect('venta.cliente', 'cliente')
@@ -54,16 +54,16 @@ export class VentasService {
     }
 
     query.orderBy('venta.fecha', 'ASC');
-    query.skip(skip).take(limit);
+    query.skip(skip).take(pageSize);
 
     const [items, total] = await query.getManyAndCount();
 
     return {
-        items,
+        data: items,
         total,
-        page: Number(page),
-        pageSize: Number(limit),
-        totalPages: Math.ceil(total / limit)
+        page: Number(pageNumber),
+        pageSize: Number(pageSize),
+        totalPages: Math.ceil(total / pageSize)
     };
   }
 
@@ -571,33 +571,34 @@ export class VentasService {
         : sub - desc;
       const ganancia = ingresoVenta - (ventaCosto * ratio);
       const vTotal = (Number(v.total) || 0) * ratio;
+      const subNeto = vTotal - imp;
 
       if (isHoy) {
         hoy.ventas += vTotal;
         hoy.ganancia += ganancia;
         hoy.itbis += imp;
-        hoy.sinItbis += sub;
+        hoy.sinItbis += subNeto;
         hoy.ordenes += 1;
       }
       if (isSemana) {
         semana.ventas += vTotal;
         semana.ganancia += ganancia;
         semana.itbis += imp;
-        semana.sinItbis += sub;
+        semana.sinItbis += subNeto;
         semana.ordenes += 1;
       }
       if (isMes) {
         mes.ventas += vTotal;
         mes.ganancia += ganancia;
         mes.itbis += imp;
-        mes.sinItbis += sub;
+        mes.sinItbis += subNeto;
         mes.ordenes += 1;
       }
       if (isAnio) {
         anio.ventas += vTotal;
         anio.ganancia += ganancia;
         anio.itbis += imp;
-        anio.sinItbis += sub;
+        anio.sinItbis += subNeto;
         anio.ordenes += 1;
       }
 
@@ -606,7 +607,7 @@ export class VentasService {
           custom.ventas += vTotal;
           custom.ganancia += ganancia;
           custom.itbis += imp;
-          custom.sinItbis += sub;
+          custom.sinItbis += subNeto;
           custom.ordenes += 1;
         }
       }
