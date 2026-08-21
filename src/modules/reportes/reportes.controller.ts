@@ -14,13 +14,14 @@ export class ReportesController {
     @Query('fechaFin') fechaFin: string,
     @Query('pagoPendiente') pagoPendiente: string,
     @Query('pagoPagado') pagoPagado: string,
+    @Query('proveedorId') proveedorIdReq: string,
     @Request() req,
     @Res() res: Response,
   ) {
     const isPagoPendiente = pagoPendiente === 'true';
     const isPagoPagado = pagoPagado === 'true';
 
-    let proveedorId = undefined;
+    let proveedorId = proveedorIdReq;
     if (req.user && req.user.role === 'proveedor') {
       proveedorId = req.user.id;
     }
