@@ -25,6 +25,7 @@ export class UserPermissions {
     @ApiProperty() entregas: boolean;
     @ApiProperty() entregas_crear: boolean;
     @ApiProperty() entregas_gestionar: boolean; // para admin: marcar como entregada o pagada
+    @ApiProperty() inventario: boolean;
 }
 
 @Entity('users')
@@ -42,7 +43,7 @@ export class User {
     name: string;
 
     @Column({ default: 'usuario' })
-    role: 'admin' | 'usuario' | 'proveedor';
+    role: 'admin' | 'usuario' | 'proveedor' | 'vendedor';
 
     @Column({ type: 'jsonb' })
     permissions: UserPermissions;

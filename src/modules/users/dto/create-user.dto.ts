@@ -23,6 +23,7 @@ class UserPermissionsDto {
     @IsOptional() estadoCuenta: boolean;
     @IsOptional() estadoCuenta_exportar: boolean;
     @IsOptional() estadoCuenta_filtros: boolean;
+    @IsOptional() inventario: boolean;
 }
 
 export class CreateUserDto {
@@ -42,9 +43,9 @@ export class CreateUserDto {
     @IsNotEmpty({ message: 'El nombre es obligatorio' })
     name: string;
 
-    @ApiProperty({ enum: ['admin', 'usuario', 'proveedor'] })
-    @IsEnum(['admin', 'usuario', 'proveedor'], { message: 'El rol debe ser "admin", "usuario" o "proveedor"' })
-    role: 'admin' | 'usuario' | 'proveedor';
+    @ApiProperty({ enum: ['admin', 'usuario', 'proveedor', 'vendedor'] })
+    @IsEnum(['admin', 'usuario', 'proveedor', 'vendedor'], { message: 'El rol debe ser "admin", "usuario", "proveedor" o "vendedor"' })
+    role: 'admin' | 'usuario' | 'proveedor' | 'vendedor';
 
     @ApiProperty({ required: false, default: true })
     @IsOptional()
