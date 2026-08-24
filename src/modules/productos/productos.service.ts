@@ -45,6 +45,9 @@ export class ProductosService {
       } else {
         queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId });
       }
+    } else if (user && user.role !== 'admin') {
+      // Si no especificaron proveedor y no son admin ni proveedor, forzar a internos
+      queryBuilder.andWhere('producto.proveedorId IS NULL');
     }
 
     if (search) {

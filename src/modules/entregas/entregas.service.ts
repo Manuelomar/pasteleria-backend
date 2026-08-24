@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull } from 'typeorm';
+import { Repository, IsNull, ILike } from 'typeorm';
 import { Entrega, EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { Producto } from '../../entities/producto.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
@@ -187,9 +187,9 @@ export class EntregasService {
             const prodProv = item.producto;
             if (!prodProv) continue;
 
-            // Find internal product by name
+            // Find internal product by name (case-insensitive)
             let internalProd = await this.productoRepository.findOne({
-                where: { nombre: prodProv.nombre, proveedorId: IsNull() }
+                where: { nombre: ILike(prodProv.nombre), proveedorId: IsNull() }
             });
 
             if (internalProd) {
