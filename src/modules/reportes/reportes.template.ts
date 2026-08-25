@@ -173,7 +173,7 @@ export const reporteProveedorTemplate = `
                                 </span>
                             </td>
                             <% if (entrega.items && entrega.items.length > 0) { %>
-                                <td><%= entrega.items[0].producto ? entrega.items[0].producto.nombre : 'Producto' %></td>
+                                <td><%= entrega.items[0].nombre ? entrega.items[0].nombre : (entrega.items[0].producto ? entrega.items[0].producto.nombre : 'Producto') %></td>
                                 <td class="text-center"><%= entrega.items[0].cantidad %></td>
                             <% } else { %>
                                 <td>-</td>
@@ -184,7 +184,7 @@ export const reporteProveedorTemplate = `
                         <% if (entrega.items && entrega.items.length > 1) { %>
                             <% for (let i = 1; i < entrega.items.length; i++) { %>
                                 <tr>
-                                    <td><%= entrega.items[i].producto ? entrega.items[i].producto.nombre : 'Producto' %></td>
+                                    <td><%= entrega.items[i].nombre ? entrega.items[i].nombre : (entrega.items[i].producto ? entrega.items[i].producto.nombre : 'Producto') %></td>
                                     <td class="text-center"><%= entrega.items[i].cantidad %></td>
                                 </tr>
                             <% } %>

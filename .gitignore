@@ -6,3 +6,13 @@ dist/
 *.log
 
 .vercel
+
+# Database maintenance and migration scripts
+delete-duplicates.js
+restore-duplicates.js
+query-orphans.js
+query-orphans-ventas.js
+fix-entrega-orphans.js
+migrate-entrega-items.js
+query-duplicates.js
+force-fix-orphans.js

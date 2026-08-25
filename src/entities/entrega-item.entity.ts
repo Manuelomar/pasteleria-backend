@@ -21,6 +21,9 @@ export class EntregaItem {
     @JoinColumn({ name: 'productoId' })
     producto: Producto;
 
+    @Column({ nullable: true })
+    nombre: string;
+
     @Column('int')
     cantidad: number;
 

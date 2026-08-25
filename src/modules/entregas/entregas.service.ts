@@ -61,6 +61,7 @@ export class EntregasService {
 
             entregaItems.push({
                 productoId: producto.id,
+                nombre: producto.nombre,
                 cantidad: item.cantidad,
                 precioCosto: producto.precioCosto,
             });
