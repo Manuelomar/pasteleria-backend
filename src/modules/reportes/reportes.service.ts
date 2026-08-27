@@ -28,8 +28,9 @@ export class ReportesService {
       .leftJoinAndSelect('entrega.items', 'items')
       .leftJoinAndSelect('items.producto', 'producto');
 
-    if (proveedorId) {
-      qb.andWhere('proveedor.id = :proveedorId', { proveedorId });
+    if (proveedorId && proveedorId !== 'todos') {
+      const targetIds = proveedorId.split(',').map(id => id.trim());
+      qb.andWhere('proveedor.id IN (:...targetIds)', { targetIds });
     }
 
     if (fechaInicio) {
