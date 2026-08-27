@@ -196,6 +196,10 @@ export class EntregasService {
             if (internalProd) {
                 internalProd.cantidad += item.cantidad;
                 
+                if (internalProd.cantidad > 0) {
+                    internalProd.disponible = true;
+                }
+                
                 // Actualizar historial de costos si el costo cambió
                 if (Number(internalProd.precioCosto) !== Number(prodProv.precioCosto)) {
                     if (!internalProd.historialCostos) {
@@ -224,6 +228,11 @@ export class EntregasService {
 
             // Deduct from provider
             prodProv.cantidad = Math.max(0, prodProv.cantidad - item.cantidad);
+            if (prodProv.cantidad <= 0) {
+                prodProv.disponible = false;
+            } else {
+                prodProv.disponible = true;
+            }
             await this.productoRepository.save(prodProv);
         }
 

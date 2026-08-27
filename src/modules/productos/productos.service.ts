@@ -96,6 +96,11 @@ export class ProductosService {
         throw new BadRequestException("Ya existe un producto con este nombre en tu catálogo. Utiliza la opción de 'Añadir producto existente' si deseas agregarlo con el mismo nombre.");
       }
     }
+    
+    if (data.cantidad !== undefined) {
+      data.disponible = data.cantidad > 0;
+    }
+    
     const entity = this.repo.create(data);
     return this.repo.save(entity);
   }
@@ -116,6 +121,11 @@ export class ProductosService {
         }
       }
     }
+    
+    if (data.cantidad !== undefined) {
+      data.disponible = data.cantidad > 0;
+    }
+    
     await this.repo.update(id, data);
     return this.findOne(id);
   }
