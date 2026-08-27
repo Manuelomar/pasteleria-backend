@@ -31,6 +31,9 @@ export class Producto {
     @Column({ default: true })
     disponible: boolean;
 
+    @Column({ default: true })
+    contable: boolean;
+
     @Column('text', { nullable: true })
     imagen: string;
 

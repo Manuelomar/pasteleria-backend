@@ -16,3 +16,4 @@ fix-entrega-orphans.js
 migrate-entrega-items.js
 query-duplicates.js
 force-fix-orphans.js
+migrate-contable.js
