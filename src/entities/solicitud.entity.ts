@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-export type TipoSolicitud = 'bizcocho' | 'combo';
+export type TipoSolicitud = 'bizcocho' | 'combo' | 'orden';
 export type EstadoSolicitud = 'pendiente' | 'en-proceso' | 'completada' | 'cancelada';
 
 @Entity('solicitudes')
@@ -8,7 +8,7 @@ export class Solicitud {
     @PrimaryGeneratedColumn('uuid')
     id: string;
 
-    @Column({ type: 'enum', enum: ['bizcocho', 'combo'], default: 'bizcocho' })
+    @Column({ type: 'enum', enum: ['bizcocho', 'combo', 'orden'], default: 'bizcocho' })
     tipo: TipoSolicitud;
 
     @Column()

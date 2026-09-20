@@ -12,24 +12,24 @@ export class SolicitudesService {
     ) {}
 
     async findAllPaged(paginationDto: PaginationDto, tipo?: TipoSolicitud): Promise<PaginatedResponseDto<Solicitud>> {
-        const { page = 1, limit = 10 } = paginationDto;
-        const skip = (page - 1) * limit;
+        const { pageNumber = 1, pageSize = 10 } = paginationDto;
+        const skip = (pageNumber - 1) * pageSize;
 
         const query = this.repository.createQueryBuilder('s').orderBy('s.createdAt', 'DESC');
         if (tipo) {
             query.where('s.tipo = :tipo', { tipo });
         }
 
-        query.skip(skip).take(limit);
+        query.skip(skip).take(pageSize);
 
         const [items, total] = await query.getManyAndCount();
 
         return {
-            items,
+            data: items,
             total,
-            page: Number(page),
-            pageSize: Number(limit),
-            totalPages: Math.ceil(total / limit),
+            page: Number(pageNumber),
+            pageSize: Number(pageSize),
+            totalPages: Math.ceil(total / pageSize),
         };
     }
 
@@ -46,6 +46,15 @@ export class SolicitudesService {
         const solicitud = this.repository.create({
             ...data,
             tipo: 'combo',
+            imagenReferencia
+        } as Partial<Solicitud>);
+        return await this.repository.save(solicitud);
+    }
+
+    async createOrden(data: any, imagenReferencia?: string): Promise<Solicitud> {
+        const solicitud = this.repository.create({
+            ...data,
+            tipo: 'orden',
             imagenReferencia
         } as Partial<Solicitud>);
         return await this.repository.save(solicitud);
