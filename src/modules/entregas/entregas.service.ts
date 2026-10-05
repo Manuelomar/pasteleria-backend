@@ -118,7 +118,8 @@ export class EntregasService {
         if (user.role === 'proveedor') {
             query.andWhere('entrega.proveedorId = :proveedorIdUser', { proveedorIdUser: user.id });
         } else if (proveedorId) {
-            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId });
+            const ids = proveedorId.split(',');
+            query.andWhere('entrega.proveedorId IN (:...ids)', { ids });
         }
         
         if (filtro && filtro !== 'todos') {
