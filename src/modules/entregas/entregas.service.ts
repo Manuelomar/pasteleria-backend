@@ -106,7 +106,7 @@ export class EntregasService {
         return query.getMany();
     }
 
-    async findAllPaged(paginationDto: PaginationDto, user: any, filtro?: string, search?: string): Promise<PaginatedResponseDto<Entrega>> {
+    async findAllPaged(paginationDto: PaginationDto, user: any, filtro?: string, search?: string, proveedorId?: string): Promise<PaginatedResponseDto<Entrega>> {
         const { pageNumber = 1, pageSize = 10 } = paginationDto;
         const skip = (pageNumber - 1) * pageSize;
 
@@ -116,7 +116,9 @@ export class EntregasService {
             .leftJoinAndSelect('items.producto', 'producto');
         
         if (user.role === 'proveedor') {
-            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
+            query.andWhere('entrega.proveedorId = :proveedorIdUser', { proveedorIdUser: user.id });
+        } else if (proveedorId) {
+            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId });
         }
         
         if (filtro && filtro !== 'todos') {

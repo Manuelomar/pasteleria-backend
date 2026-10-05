@@ -27,9 +27,10 @@ export class EntregasController {
         @Query() paginationDto: PaginationDto,
         @Request() req,
         @Query('filtro') filtro?: string,
-        @Query('search') search?: string
+        @Query('search') search?: string,
+        @Query('proveedorId') proveedorId?: string
     ) {
-        return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search);
+        return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search, proveedorId);
     }
 
     @Patch(':id/estado-entrega')
