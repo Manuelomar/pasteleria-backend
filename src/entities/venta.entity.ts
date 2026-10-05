@@ -2,7 +2,7 @@ import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateCol
 import { VentaItem } from './venta-item.entity';
 import { Cliente } from './cliente.entity';
 
-export type MetodoPago = "efectivo" | "tarjeta" | "transferencia" | "uberEats";
+export type MetodoPago = "efectivo" | "tarjeta" | "transferencia" | "uberEats" | "pedidosYa";
 export type EstadoPago = "pagado" | "pendiente" | "parcial";
 
 @Entity('ventas')
