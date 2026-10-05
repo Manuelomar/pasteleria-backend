@@ -711,13 +711,15 @@ export class VentasService {
       Tarjeta: "var(--color-chart-2)",
       Transferencia: "var(--color-chart-3)",
       UberEats: "var(--color-chart-4)",
+      PedidosYa: "var(--color-chart-5)",
     };
-    const mapMet: Record<string, number> = { Efectivo: 0, Tarjeta: 0, Transferencia: 0, UberEats: 0 };
+    const mapMet: Record<string, number> = { Efectivo: 0, Tarjeta: 0, Transferencia: 0, UberEats: 0, PedidosYa: 0 };
     
     chartVentas.forEach(v => {
       const met = v.metodoPago === "efectivo" ? "Efectivo" : 
                   v.metodoPago === "tarjeta" ? "Tarjeta" : 
-                  v.metodoPago === "uberEats" ? "UberEats" : "Transferencia";
+                  v.metodoPago === "uberEats" ? "UberEats" : 
+                  v.metodoPago === "pedidosYa" ? "PedidosYa" : "Transferencia";
       mapMet[met] += (Number(v.total) || 0) * getRatio(v);
     });
     const metodosPago = Object.keys(mapMet).map(k => ({
