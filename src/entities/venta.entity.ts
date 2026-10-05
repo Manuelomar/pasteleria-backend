@@ -38,7 +38,7 @@ export class Venta {
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     total: number;
 
-    @Column({ type: 'enum', enum: ['efectivo', 'tarjeta', 'transferencia', 'uberEats'], default: 'efectivo' })
+    @Column({ type: 'enum', enum: ['efectivo', 'tarjeta', 'transferencia', 'uberEats', 'pedidosYa'], default: 'efectivo' })
     metodoPago: MetodoPago;
 
     @Column({ type: 'enum', enum: ['pagado', 'pendiente', 'parcial'], default: 'pagado' })
