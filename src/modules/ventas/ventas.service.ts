@@ -193,7 +193,8 @@ export class VentasService {
       query.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
-      query.andWhere('item.productoId = :productoId', { productoId });
+      const ids = productoId.split(',');
+      query.andWhere('item.productoId IN (:...ids)', { ids });
     }
     if (ventaSearch && ventaSearch.trim() !== '') {
       const search = `%${ventaSearch.trim()}%`;
@@ -225,7 +226,8 @@ export class VentasService {
       totalsQuery.andWhere('venta.fecha <= :endDate', { endDate });
     }
     if (productoId && productoId !== 'all' && productoId !== '') {
-      totalsQuery.andWhere('item.productoId = :productoId', { productoId });
+      const ids = productoId.split(',');
+      totalsQuery.andWhere('item.productoId IN (:...ids)', { ids });
     }
     if (ventaSearch && ventaSearch.trim() !== '') {
       const search = `%${ventaSearch.trim()}%`;
