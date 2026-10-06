@@ -573,9 +573,9 @@ export class VentasService {
       const sub = (Number(v.subtotal) || 0) * ratio;
       const imp = (Number(v.impuesto) || 0) * ratio;
       const desc = (Number(v.descuento) || 0) * ratio;
-      // Para UberEats el ingreso real es venta.total (ya lleva descontada la comisión de Uber).
+      // Para UberEats y Pedidos Ya el ingreso real es venta.total (ya lleva descontada la comisión de la plataforma).
       // Para el resto: subtotal - descuento.
-      const ingresoVenta = v.metodoPago === 'uberEats'
+      const ingresoVenta = (v.metodoPago === 'uberEats' || v.metodoPago === 'pedidosYa')
         ? (Number(v.total) || 0) * ratio
         : sub - desc;
       const ganancia = ingresoVenta - (ventaCosto * ratio);
