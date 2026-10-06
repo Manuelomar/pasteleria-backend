@@ -246,7 +246,7 @@ export class VentasService {
     .addSelect(
       `SUM(item.cantidad * item.precio * 
         CASE 
-          WHEN venta.metodoPago = 'uberEats' THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
+          WHEN venta.metodoPago IN ('uberEats', 'pedidosYa') THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
           ELSE (1 - (COALESCE(venta.descuento, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1)))
         END * 
         CASE 
@@ -258,7 +258,7 @@ export class VentasService {
     .addSelect(
       `SUM(item.cantidad * (
         (item.precio * CASE 
-          WHEN venta.metodoPago = 'uberEats' THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
+          WHEN venta.metodoPago IN ('uberEats', 'pedidosYa') THEN (COALESCE(venta.total, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1))
           ELSE (1 - (COALESCE(venta.descuento, 0) / COALESCE(NULLIF(venta.subtotal, 0), 1)))
         END) - COALESCE(item.precioCosto, 0)
       ) * CASE 
@@ -281,6 +281,8 @@ export class VentasService {
       let nombreCliente = item.venta?.cliente?.nombre || item.venta?.clienteNombre || 'Consumidor Final';
       if (item.venta?.metodoPago === 'uberEats') {
         nombreCliente = `UberEats - ${nombreCliente === 'Consumidor Final' ? 'Cliente' : nombreCliente}`;
+      } else if (item.venta?.metodoPago === 'pedidosYa') {
+        nombreCliente = `Pedidos Ya - ${nombreCliente === 'Consumidor Final' ? 'Cliente' : nombreCliente}`;
       }
 
       let discountRatio = 1;
@@ -288,7 +290,7 @@ export class VentasService {
       const ventaTotal = Number(item.venta?.total) || 0;
       const ventaDescuento = Number(item.venta?.descuento) || 0;
       
-      if (item.venta?.metodoPago === 'uberEats') {
+      if (item.venta?.metodoPago === 'uberEats' || item.venta?.metodoPago === 'pedidosYa') {
         if (ventaSubtotal > 0) {
           discountRatio = ventaTotal / ventaSubtotal;
         }
