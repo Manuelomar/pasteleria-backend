@@ -200,7 +200,9 @@ export class EntregasService {
                 internalProd.cantidad += item.cantidad;
                 
                 if (internalProd.cantidad > 0) {
-                    internalProd.disponible = true;
+                    if (internalProd.contable !== false) {
+                        internalProd.disponible = true;
+                    }
                 }
                 
                 // Actualizar historial de costos si el costo cambió
@@ -230,11 +232,15 @@ export class EntregasService {
             }
 
             // Deduct from provider
-            prodProv.cantidad = Math.max(0, prodProv.cantidad - item.cantidad);
-            if (prodProv.cantidad <= 0) {
-                prodProv.disponible = false;
+            if (prodProv.contable !== false) {
+                prodProv.cantidad = Math.max(0, prodProv.cantidad - item.cantidad);
+                if (prodProv.cantidad <= 0) {
+                    prodProv.disponible = false;
+                } else {
+                    prodProv.disponible = true;
+                }
             } else {
-                prodProv.disponible = true;
+                prodProv.cantidad = Math.max(0, prodProv.cantidad - item.cantidad);
             }
             await this.productoRepository.save(prodProv);
         }

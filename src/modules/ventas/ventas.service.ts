@@ -456,12 +456,13 @@ export class VentasService {
         if (item.productoId) {
           const producto = await this.productoRepo.findOne({ where: { id: item.productoId } });
           if (producto) {
-            producto.cantidad = Math.max(0, (producto.cantidad || 0) - item.cantidad);
-            producto.vendidos = (producto.vendidos || 0) + item.cantidad;
-            
-            if (producto.cantidad <= 0) {
-              producto.disponible = false;
+            if (producto.contable !== false) {
+              producto.cantidad = Math.max(0, (producto.cantidad || 0) - item.cantidad);
+              if (producto.cantidad <= 0) {
+                producto.disponible = false;
+              }
             }
+            producto.vendidos = (producto.vendidos || 0) + item.cantidad;
             
             await this.productoRepo.save(producto);
           }

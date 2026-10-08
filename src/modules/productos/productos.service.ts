@@ -98,7 +98,9 @@ export class ProductosService {
     }
     
     if (data.cantidad !== undefined) {
-      data.disponible = data.cantidad > 0;
+      if (data.contable !== false) {
+        data.disponible = data.cantidad > 0;
+      }
     }
     
     const entity = this.repo.create(data);
@@ -106,8 +108,12 @@ export class ProductosService {
   }
 
   async update(id: string, data: Partial<Producto>) {
+    let current = null;
+    if (data.nombre || (data.cantidad !== undefined && data.contable === undefined)) {
+      current = await this.findOne(id);
+    }
+
     if (data.nombre) {
-      const current = await this.findOne(id);
       if (current && current.nombre !== data.nombre) {
         const existing = await this.repo.findOne({ 
           where: { 
@@ -123,7 +129,10 @@ export class ProductosService {
     }
     
     if (data.cantidad !== undefined) {
-      data.disponible = data.cantidad > 0;
+      const isContable = data.contable !== undefined ? data.contable : current?.contable;
+      if (isContable !== false) {
+        data.disponible = data.cantidad > 0;
+      }
     }
     
     await this.repo.update(id, data);
