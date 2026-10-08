@@ -489,8 +489,10 @@ export class VentasService {
     const currentYear = currentDRDate.getUTCFullYear();
     const currentMonth = currentDRDate.getUTCMonth();
     
-    // startOfWeek: go back 7 days from current DR date
-    const startOfWeekDR = new Date(currentDRTimeMs - (7 * 24 * 3600000));
+    // startOfWeek: lunes de la semana actual
+    const currentDayOfWeek = currentDRDate.getUTCDay(); // 0 (Dom) a 6 (Sab)
+    const daysToMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
+    const startOfWeekDR = new Date(currentDRTimeMs - (daysToMonday * 24 * 3600000));
     const startOfWeek = new Date(Date.UTC(startOfWeekDR.getUTCFullYear(), startOfWeekDR.getUTCMonth(), startOfWeekDR.getUTCDate(), 4, 0, 0, 0));
     
     const startOfYear = new Date(Date.UTC(currentYear, 0, 1, 4, 0, 0, 0));
@@ -646,11 +648,11 @@ export class VentasService {
         });
     }
 
-    // Ventas Semanales
+    // Ventas Semanales (lunes a domingo de la semana actual)
     const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     const ventasSemanales = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(currentDRTimeMs - (i * 24 * 3600000));
+    for (let i = 0; i <= 6; i++) {
+      const d = new Date(startOfWeekDR.getTime() + (i * 24 * 3600000));
       const drYear = d.getUTCFullYear();
       const drMonth = String(d.getUTCMonth() + 1).padStart(2, '0');
       const drDay = String(d.getUTCDate()).padStart(2, '0');
