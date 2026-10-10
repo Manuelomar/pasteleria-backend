@@ -680,9 +680,14 @@ export class VentasService {
       const drDate = new Date(drTimeMs);
       if (drDate.getUTCFullYear() === currentYear) {
         const monthIndex = drDate.getUTCMonth();
-        ventasMensuales[monthIndex].ventas += (Number(v.total) || 0) * getRatio(v);
-        ventasMensuales[monthIndex].subtotal += (Number(v.subtotal) || 0) * getRatio(v);
-        ventasMensuales[monthIndex].impuesto += (Number(v.impuesto) || 0) * getRatio(v);
+        const ratio = getRatio(v);
+        const vTotal = (Number(v.total) || 0) * ratio;
+        const imp = (Number(v.impuesto) || 0) * ratio;
+        const subNeto = vTotal - imp;
+        
+        ventasMensuales[monthIndex].ventas += vTotal;
+        ventasMensuales[monthIndex].subtotal += subNeto;
+        ventasMensuales[monthIndex].impuesto += imp;
       }
     });
 
