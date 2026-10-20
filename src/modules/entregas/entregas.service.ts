@@ -188,7 +188,17 @@ export class EntregasService {
         }
 
         for (const item of entrega.items) {
-            const prodProv = item.producto;
+            let prodProv = item.producto;
+            if (!prodProv && item.nombre) {
+                const found = await this.productoRepository.findOne({
+                    where: { nombre: ILike(item.nombre.trim()), proveedorId: entrega.proveedorId }
+                });
+                if (found) {
+                    prodProv = found;
+                    item.producto = found;
+                    item.productoId = found.id;
+                }
+            }
             if (!prodProv) continue;
 
             // Find internal product by name (case-insensitive)
