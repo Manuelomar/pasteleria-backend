@@ -22,7 +22,12 @@ export class AuthService {
     }
 
     async login(user: Omit<User, 'password'>): Promise<AuthResponseDto> {
-        const payload = { username: user.username, sub: user.id, role: user.role };
+        const payload = {
+            username: user.username,
+            sub: user.id,
+            role: user.role,
+            sucursalId: user.sucursalId ?? null,
+        };
         return {
             user: {
                 id: user.id,
@@ -31,6 +36,8 @@ export class AuthService {
                 role: user.role,
                 permissions: user.permissions,
                 vendeMateriales: user.vendeMateriales,
+                sucursalId: user.sucursalId ?? null,
+                sucursalNombre: user.sucursal?.nombre ?? null,
             },
             access_token: this.jwtService.sign(payload),
         };

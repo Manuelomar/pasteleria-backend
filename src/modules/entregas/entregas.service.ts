@@ -2,10 +2,12 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, IsNull, ILike } from 'typeorm';
 import { Entrega, EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
+import { EntregaItem } from '../../entities/entrega-item.entity';
 import { Producto } from '../../entities/producto.entity';
+import { User } from '../../entities/user.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 
-import { IsString, IsDateString, IsArray, IsNotEmpty, IsOptional, ValidateNested, IsNumber } from 'class-validator';
+import { IsString, IsDateString, IsArray, IsNotEmpty, IsOptional, ValidateNested, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class EntregaItemDto {
@@ -15,6 +17,27 @@ class EntregaItemDto {
 
     @IsNumber()
     cantidad: number;
+}
+
+export class UpdateEntregaItemDto {
+    @IsString()
+    @IsOptional()
+    id?: string;
+
+    @IsString()
+    @IsNotEmpty()
+    productoId: string;
+
+    @IsNumber()
+    @Min(1)
+    cantidad: number;
+}
+
+export class UpdateEntregaItemsDto {
+    @IsArray()
+    @ValidateNested({ each: true })
+    @Type(() => UpdateEntregaItemDto)
+    items: UpdateEntregaItemDto[];
 }
 
 export class CreateEntregaDto {
@@ -37,6 +60,8 @@ export class EntregasService {
     constructor(
         @InjectRepository(Entrega)
         private entregaRepository: Repository<Entrega>,
+        @InjectRepository(EntregaItem)
+        private entregaItemRepository: Repository<EntregaItem>,
         @InjectRepository(Producto)
         private productoRepository: Repository<Producto>
     ) {}
@@ -257,6 +282,131 @@ export class EntregasService {
 
         entrega.agregadoAlStock = true;
         return this.entregaRepository.save(entrega);
+    }
+
+    async updateItems(id: string, updateItemsDto: UpdateEntregaItemsDto) {
+        const entrega = await this.entregaRepository.findOne({
+            where: { id },
+            relations: ['items', 'items.producto', 'proveedor']
+        });
+        if (!entrega) {
+            throw new NotFoundException('Entrega no encontrada');
+        }
+        if (entrega.estadoPago === 'pagado') {
+            throw new BadRequestException('No se pueden modificar los artículos de una entrega que ya fue pagada.');
+        }
+        if (!updateItemsDto.items || updateItemsDto.items.length === 0) {
+            throw new BadRequestException('La entrega debe contener al menos un producto. Si deseas eliminarla por completo, utiliza la opción descartar.');
+        }
+
+        // Validar cantidades positivas
+        for (const item of updateItemsDto.items) {
+            if (!item.cantidad || item.cantidad <= 0) {
+                throw new BadRequestException('La cantidad de cada producto debe ser mayor a 0');
+            }
+        }
+
+        // Si ya fue agregada al stock, ajustamos la diferencia en inventario
+        if (entrega.agregadoAlStock) {
+            for (const oldItem of entrega.items) {
+                const matchedNewItem = updateItemsDto.items.find(
+                    newItem => (oldItem.productoId && newItem.productoId === oldItem.productoId) || (oldItem.id && newItem.id === oldItem.id)
+                );
+                const newCantidad = matchedNewItem ? Number(matchedNewItem.cantidad) : 0;
+                const oldCantidad = Number(oldItem.cantidad);
+                const diff = newCantidad - oldCantidad; // Negativo si se redujo o eliminó
+
+                if (diff !== 0) {
+                    // 1. Ajustar producto interno
+                    const productName = oldItem.nombre?.trim() || oldItem.producto?.nombre?.trim();
+                    if (productName) {
+                        const internalProd = await this.productoRepository.findOne({
+                            where: { nombre: ILike(productName), proveedorId: IsNull() }
+                        });
+                        if (internalProd) {
+                            internalProd.cantidad = Math.max(0, internalProd.cantidad + diff);
+                            if (internalProd.cantidad === 0 && internalProd.contable !== false) {
+                                internalProd.disponible = false;
+                            } else if (internalProd.cantidad > 0) {
+                                internalProd.disponible = true;
+                            }
+                            await this.productoRepository.save(internalProd);
+                        }
+                    }
+
+                    // 2. Ajustar producto del proveedor (devolver al inventario del proveedor si se quitó)
+                    let prodProv = oldItem.producto;
+                    if (!prodProv && oldItem.productoId) {
+                        prodProv = await this.productoRepository.findOne({ where: { id: oldItem.productoId } });
+                    }
+                    if (prodProv) {
+                        prodProv.cantidad = Math.max(0, prodProv.cantidad - diff);
+                        if (prodProv.cantidad > 0) {
+                            prodProv.disponible = true;
+                        }
+                        await this.productoRepository.save(prodProv);
+                    }
+                }
+            }
+        }
+
+        // Procesar nuevos items y calcular nuevo totalCosto
+        let totalCosto = 0;
+        const newItems: EntregaItem[] = [];
+
+        // Mapear items antiguos por productoId
+        const oldItemsByProdId = new Map<string, EntregaItem>();
+        for (const item of entrega.items) {
+            if (item.productoId) {
+                oldItemsByProdId.set(item.productoId, item);
+            }
+        }
+
+        for (const itemDto of updateItemsDto.items) {
+            const producto = await this.productoRepository.findOne({ where: { id: itemDto.productoId } });
+            if (!producto) {
+                throw new NotFoundException(`Producto ${itemDto.productoId} no encontrado`);
+            }
+
+            const precioCosto = Number(producto.precioCosto || 0);
+            const cantidad = Number(itemDto.cantidad);
+            totalCosto += precioCosto * cantidad;
+
+            const existingItem = oldItemsByProdId.get(producto.id);
+            if (existingItem) {
+                existingItem.cantidad = cantidad;
+                existingItem.precioCosto = precioCosto;
+                existingItem.nombre = producto.nombre;
+                newItems.push(existingItem);
+            } else {
+                const newItem = this.entregaItemRepository.create({
+                    entregaId: entrega.id,
+                    productoId: producto.id,
+                    nombre: producto.nombre,
+                    cantidad,
+                    precioCosto
+                });
+                newItems.push(newItem);
+            }
+        }
+
+        // Eliminar de BD los items que fueron quitados de la entrega
+        const newProductIds = new Set(updateItemsDto.items.map(i => i.productoId));
+        const itemsToRemove = entrega.items.filter(item => !newProductIds.has(item.productoId));
+        if (itemsToRemove.length > 0) {
+            await this.entregaItemRepository.remove(itemsToRemove);
+        }
+
+        // Guardar items y entrega con total recalculado
+        await this.entregaItemRepository.save(newItems);
+        entrega.totalCosto = totalCosto;
+        entrega.items = newItems;
+        await this.entregaRepository.save(entrega);
+
+        return this.entregaRepository.findOne({
+            where: { id: entrega.id },
+            relations: ['proveedor', 'items', 'items.producto']
+        });
     }
 
     async remove(id: string) {

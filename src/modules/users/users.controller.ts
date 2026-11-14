@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Put, Query, Delete, Patch } from '@nestjs/common';
 import { UsersService } from './users.service';
-import { UserPermissions } from '../../entities/user.entity';
+import { User, UserPermissions } from '../../entities/user.entity';
 import { ApiTags, ApiOperation, ApiResponse, ApiBody, ApiBearerAuth } from '@nestjs/swagger';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UserResponseDto } from './dto/user-response.dto';
@@ -27,9 +27,10 @@ export class UsersController {
         @Query('search') search?: string,
         @Query('role') role?: string,
         @Query('activo') activo?: string,
+        @Query('sucursalId') sucursalId?: string,
     ): Promise<PaginatedResponseDto<UserResponseDto>> {
         const isActivo = activo === 'true' ? true : activo === 'false' ? false : undefined;
-        return this.usersService.findAllPaged(paginationDto, search, role, isActivo);
+        return this.usersService.findAllPaged(paginationDto, search, role, isActivo, sucursalId);
     }
 
     @Post()
@@ -50,7 +51,7 @@ export class UsersController {
 
     @Put(':id')
     @ApiOperation({ summary: 'Update a user' })
-    update(@Param('id') id: string, @Body() data: any): Promise<UserResponseDto> {
+    update(@Param('id') id: string, @Body() data: Partial<User>): Promise<UserResponseDto> {
         return this.usersService.update(id, data);
     }
 

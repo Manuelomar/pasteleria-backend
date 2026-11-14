@@ -18,6 +18,7 @@ import { EntregasModule } from './modules/entregas/entregas.module';
 import { ReportesModule } from './modules/reportes/reportes.module';
 import { CategoriasModule } from './modules/categorias/categorias.module';
 import { SolicitudesModule } from './modules/solicitudes/solicitudes.module';
+import { SucursalesModule } from './modules/sucursales/sucursales.module';
 
 @Module({
     imports: [
@@ -55,6 +56,7 @@ import { SolicitudesModule } from './modules/solicitudes/solicitudes.module';
         ReportesModule,
         CategoriasModule,
         SolicitudesModule,
+        SucursalesModule,
     ],
     controllers: [],
     providers: [

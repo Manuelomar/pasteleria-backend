@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, Query } from '@nestjs/common';
-import { EntregasService, CreateEntregaDto } from './entregas.service';
+import { EntregasService, CreateEntregaDto, UpdateEntregaItemsDto } from './entregas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -47,6 +47,14 @@ export class EntregasController {
         @Body('estado') estado: EstadoPagoEntrega
     ) {
         return this.entregasService.updateEstadoPago(id, estado);
+    }
+
+    @Patch(':id/items')
+    updateItems(
+        @Param('id') id: string,
+        @Body() updateItemsDto: UpdateEntregaItemsDto
+    ) {
+        return this.entregasService.updateItems(id, updateItemsDto);
     }
 
     @Post(':id/add-to-stock')

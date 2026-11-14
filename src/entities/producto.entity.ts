@@ -1,4 +1,5 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
+import { Sucursal } from './sucursal.entity';
 
 export type TipoProducto = 'dulce' | 'salado' | 'bebida' | 'material';
 
@@ -48,6 +49,13 @@ export class Producto {
 
     @Column({ type: 'jsonb', nullable: true, default: [] })
     historialCostos: number[];
+
+    @Column({ nullable: true })
+    sucursalId: string | null;
+
+    @ManyToOne(() => Sucursal, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'sucursalId' })
+    sucursal: Sucursal | null;
 
     @CreateDateColumn()
     createdAt: Date;

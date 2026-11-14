@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn } from 'typeorm';
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { ApiProperty } from '@nestjs/swagger';
+import { Sucursal } from './sucursal.entity';
 
 export class UserPermissions {
     @ApiProperty() clientes: boolean;
@@ -28,6 +29,8 @@ export class UserPermissions {
     @ApiProperty() inventario: boolean;
 }
 
+export type UserRole = 'superadmin' | 'admin' | 'usuario' | 'proveedor' | 'vendedor';
+
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn('uuid')
@@ -43,7 +46,7 @@ export class User {
     name: string;
 
     @Column({ default: 'usuario' })
-    role: 'admin' | 'usuario' | 'proveedor' | 'vendedor';
+    role: UserRole;
 
     @Column({ type: 'jsonb' })
     permissions: UserPermissions;
@@ -59,4 +62,11 @@ export class User {
 
     @Column({ default: false })
     vendeMateriales: boolean;
+
+    @Column({ nullable: true })
+    sucursalId: string | null;
+
+    @ManyToOne(() => Sucursal, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'sucursalId' })
+    sucursal: Sucursal | null;
 }

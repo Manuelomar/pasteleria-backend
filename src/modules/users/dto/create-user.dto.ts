@@ -23,6 +23,9 @@ class UserPermissionsDto {
     @IsOptional() estadoCuenta: boolean;
     @IsOptional() estadoCuenta_exportar: boolean;
     @IsOptional() estadoCuenta_filtros: boolean;
+    @IsOptional() entregas: boolean;
+    @IsOptional() entregas_crear: boolean;
+    @IsOptional() entregas_gestionar: boolean;
     @IsOptional() inventario: boolean;
 }
 
@@ -43,14 +46,19 @@ export class CreateUserDto {
     @IsNotEmpty({ message: 'El nombre es obligatorio' })
     name: string;
 
-    @ApiProperty({ enum: ['admin', 'usuario', 'proveedor', 'vendedor'] })
-    @IsEnum(['admin', 'usuario', 'proveedor', 'vendedor'], { message: 'El rol debe ser "admin", "usuario", "proveedor" o "vendedor"' })
-    role: 'admin' | 'usuario' | 'proveedor' | 'vendedor';
+    @ApiProperty({ enum: ['superadmin', 'admin', 'usuario', 'proveedor', 'vendedor'] })
+    @IsEnum(['superadmin', 'admin', 'usuario', 'proveedor', 'vendedor'], { message: 'El rol debe ser "superadmin", "admin", "usuario", "proveedor" o "vendedor"' })
+    role: 'superadmin' | 'admin' | 'usuario' | 'proveedor' | 'vendedor';
 
     @ApiProperty({ required: false, default: true })
     @IsOptional()
     @IsBoolean({ message: 'El estado activo debe ser un valor booleano' })
     activo?: boolean;
+
+    @ApiProperty({ required: false, nullable: true })
+    @IsOptional()
+    @IsString({ message: 'El ID de sucursal debe ser texto' })
+    sucursalId?: string | null;
 
     @ApiProperty()
     @ValidateNested()

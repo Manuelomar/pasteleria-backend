@@ -19,6 +19,12 @@ export class UserResponseDto {
 
     @ApiProperty({ required: false })
     vendeMateriales?: boolean;
+
+    @ApiProperty({ required: false, nullable: true })
+    sucursalId?: string | null;
+
+    @ApiProperty({ required: false, nullable: true })
+    sucursalNombre?: string | null;
 }
 
 export class AuthResponseDto {

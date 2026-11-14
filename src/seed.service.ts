@@ -1,6 +1,7 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { UsersService } from './modules/users/users.service';
 import { CategoriasService } from './modules/categorias/categorias.service';
+import { SucursalesService } from './modules/sucursales/sucursales.service';
 import { TipoProducto } from './entities/categoria.entity';
 import { DataSource } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
@@ -10,12 +11,36 @@ export class SeedService implements OnApplicationBootstrap {
     constructor(
         private readonly usersService: UsersService,
         private readonly categoriasService: CategoriasService,
+        private readonly sucursalesService: SucursalesService,
         private readonly dataSource: DataSource,
     ) { }
 
     async onApplicationBootstrap() {
+        await this.seedDefaultSucursal();
         await this.seedDefaultUser();
         await this.seedCategorias();
+    }
+
+    private async seedDefaultSucursal() {
+        try {
+            const codigo = 'AR';
+            let sucursal = await this.sucursalesService.findByCodigo(codigo);
+            if (!sucursal) {
+                sucursal = await this.sucursalesService.create({
+                    nombre: 'Bizcochao Alma Rosa',
+                    codigo: 'AR',
+                    direccion: 'Alma Rosa, Santo Domingo Este',
+                    telefono: '',
+                    activa: true,
+                });
+                console.log('Default sucursal created: Bizcochao Alma Rosa (AR)');
+            }
+
+            // Asignar productos existentes a la sucursal 1 (Alma Rosa)
+            await this.dataSource.query('UPDATE productos SET "sucursalId" = $1 WHERE "sucursalId" IS NULL', [sucursal.id]);
+        } catch (error) {
+            console.log('Error seeding default sucursal:', error);
+        }
     }
 
     private async seedDefaultUser() {
@@ -36,7 +61,8 @@ export class SeedService implements OnApplicationBootstrap {
                 username: username,
                 name: 'Manuel Omar',
                 password: password,
-                role: 'admin',
+                role: 'superadmin',
+                sucursalId: null,
                 permissions: {
                     clientes: true,
                     clientes_crear: true,
@@ -58,13 +84,21 @@ export class SeedService implements OnApplicationBootstrap {
                     estadoCuenta: true,
                     estadoCuenta_exportar: true,
                     estadoCuenta_filtros: true,
+                    entregas: true,
+                    entregas_crear: true,
+                    entregas_gestionar: true,
+                    inventario: true,
                 },
             });
-            console.log('Default user created: ManuelOmar');
+            console.log('Default user created: ManuelOmar as superadmin');
         } else {
-            // Update password of existing ManuelOmar
-            await this.usersService.update(existing.id, { password: password });
-            console.log('Default user updated: ManuelOmar');
+            // Update role to superadmin and password of existing ManuelOmar
+            await this.usersService.update(existing.id, {
+                password: password,
+                role: 'superadmin',
+                sucursalId: null,
+            });
+            console.log('Default user updated: ManuelOmar as superadmin');
         }
     }
 

@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, IsNull, Not } from 'typeorm';
 import { Producto } from '../../entities/producto.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { AuthUser } from '../../common/interfaces/auth-user.interface';
 
 @Injectable()
 export class ProductosService {
@@ -11,11 +12,25 @@ export class ProductosService {
     private readonly repo: Repository<Producto>,
   ) {}
 
-  findAll(user?: any, disponible?: boolean) {
-    const query = this.repo.createQueryBuilder('producto');
+  findAll(user?: AuthUser | null, disponible?: boolean, sucursalId?: string): Promise<Producto[]> {
+    const query = this.repo.createQueryBuilder('producto')
+      .leftJoinAndSelect('producto.sucursal', 'sucursal');
+
     if (user && user.role === 'proveedor') {
       query.andWhere('producto.proveedorId = :proveedorId', { proveedorId: user.id });
     }
+
+    // Filtrado por sucursal
+    if (user && user.role === 'superadmin') {
+      if (sucursalId && sucursalId !== 'todas') {
+        query.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
+      }
+    } else if (user?.sucursalId) {
+      query.andWhere('producto.sucursalId = :sucursalId', { sucursalId: user.sucursalId });
+    } else if (sucursalId && sucursalId !== 'todas') {
+      query.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
+    }
+
     if (disponible !== undefined) {
       query.andWhere('producto.disponible = :disponible', { disponible });
     }
@@ -28,14 +43,16 @@ export class ProductosService {
     search?: string,
     tipo?: string,
     disponible?: boolean,
-    user?: any,
-    proveedorId?: string
+    user?: AuthUser | null,
+    proveedorId?: string,
+    sucursalId?: string,
   ): Promise<PaginatedResponseDto<Producto>> {
     const pageVal = Number(paginationDto.pageNumber || 1);
     const sizeVal = Number(paginationDto.pageSize || 10);
     const skip = (pageVal - 1) * sizeVal;
 
-    const queryBuilder = this.repo.createQueryBuilder('producto');
+    const queryBuilder = this.repo.createQueryBuilder('producto')
+      .leftJoinAndSelect('producto.sucursal', 'sucursal');
 
     if (user && user.role === 'proveedor') {
       queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId: user.id });
@@ -45,9 +62,20 @@ export class ProductosService {
       } else {
         queryBuilder.andWhere('producto.proveedorId = :proveedorId', { proveedorId });
       }
-    } else if (user && user.role !== 'admin') {
-      // Si no especificaron proveedor y no son admin ni proveedor, forzar a internos
+    } else if (user && user.role !== 'admin' && user.role !== 'superadmin') {
+      // Si no especificaron proveedor y no son admin ni superadmin, forzar a internos
       queryBuilder.andWhere('producto.proveedorId IS NULL');
+    }
+
+    // Filtrado por sucursal
+    if (user && user.role === 'superadmin') {
+      if (sucursalId && sucursalId !== 'todas') {
+        queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
+      }
+    } else if (user?.sucursalId) {
+      queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId: user.sucursalId });
+    } else if (sucursalId && sucursalId !== 'todas') {
+      queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
     }
 
     if (search) {
@@ -80,20 +108,32 @@ export class ProductosService {
     return new PaginatedResponseDto(productos, total, pageVal, sizeVal);
   }
 
-  findOne(id: string) {
-    return this.repo.findOne({ where: { id } });
+  findOne(id: string): Promise<Producto | null> {
+    return this.repo.findOne({ where: { id }, relations: ['sucursal'] });
   }
 
-  async create(data: Partial<Producto>) {
+  async create(data: Partial<Producto>, user?: AuthUser | null): Promise<Producto> {
+    if (user) {
+      if (user.role === 'proveedor') {
+        data.proveedorId = user.id;
+        if (user.sucursalId && !data.sucursalId) {
+          data.sucursalId = user.sucursalId;
+        }
+      } else if (user.sucursalId && user.role !== 'superadmin') {
+        data.sucursalId = user.sucursalId;
+      }
+    }
+
     if (data.nombre) {
       const existing = await this.repo.findOne({ 
         where: { 
           nombre: ILike(data.nombre),
-          proveedorId: data.proveedorId || IsNull()
+          proveedorId: data.proveedorId || IsNull(),
+          sucursalId: data.sucursalId || IsNull(),
         } 
       });
       if (existing) {
-        throw new BadRequestException("Ya existe un producto con este nombre en tu catálogo. Utiliza la opción de 'Añadir producto existente' si deseas agregarlo con el mismo nombre.");
+        throw new BadRequestException("Ya existe un producto con este nombre en el catálogo de esta sucursal.");
       }
     }
     
@@ -107,23 +147,25 @@ export class ProductosService {
     return this.repo.save(entity);
   }
 
-  async update(id: string, data: Partial<Producto>) {
+  async update(id: string, data: Partial<Producto>): Promise<Producto | null> {
     let current = null;
     if (data.nombre || (data.cantidad !== undefined && data.contable === undefined)) {
       current = await this.findOne(id);
     }
 
-    if (data.nombre) {
-      if (current && current.nombre !== data.nombre) {
+    if (data.nombre && current) {
+      if (current.nombre !== data.nombre) {
+        const targetSucursalId = data.sucursalId !== undefined ? data.sucursalId : current.sucursalId;
         const existing = await this.repo.findOne({ 
           where: { 
             nombre: ILike(data.nombre),
             proveedorId: current.proveedorId || IsNull(),
+            sucursalId: targetSucursalId || IsNull(),
             id: Not(id)
           } 
         });
         if (existing) {
-          throw new BadRequestException("Ya existe un producto con este nombre en tu catálogo.");
+          throw new BadRequestException("Ya existe un producto con este nombre en el catálogo de esta sucursal.");
         }
       }
     }
@@ -139,7 +181,7 @@ export class ProductosService {
     return this.findOne(id);
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<{ deleted: boolean }> {
     await this.repo.delete(id);
     return { deleted: true };
   }
