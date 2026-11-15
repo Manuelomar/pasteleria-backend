@@ -1,9 +1,11 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Res, Request } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { VentasService } from './ventas.service';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { Response } from 'express';
 import { Public } from '../../decorators/public.decorator';
+import { RequestWithUser } from '../../common/interfaces/auth-user.interface';
+import { Venta } from '../../entities/venta.entity';
 
 @ApiTags('Ventas')
 @Controller('ventas')
@@ -36,8 +38,10 @@ export class VentasController {
     @Query('fechaInicio') fechaInicio?: string,
     @Query('fechaFin') fechaFin?: string,
     @Query('filterType') filterType?: string,
+    @Query('sucursalId') sucursalId?: string,
+    @Request() req?: RequestWithUser,
   ) {
-    return this.service.getDashboardMetrics(fechaInicio, fechaFin, filterType);
+    return this.service.getDashboardMetrics(fechaInicio, fechaFin, filterType, sucursalId, req?.user);
   }
 
   @Get()
@@ -97,12 +101,12 @@ export class VentasController {
   }
 
   @Post()
-  create(@Body() data: any) {
-    return this.service.create(data);
+  create(@Body() data: Partial<Venta>, @Request() req?: RequestWithUser) {
+    return this.service.create(data, req?.user);
   }
 
   @Put(':id')
-  update(@Param('id') id: string, @Body() data: any) {
+  update(@Param('id') id: string, @Body() data: Partial<Venta>) {
     return this.service.update(id, data);
   }
 

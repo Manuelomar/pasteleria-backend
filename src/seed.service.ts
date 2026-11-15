@@ -36,8 +36,9 @@ export class SeedService implements OnApplicationBootstrap {
                 console.log('Default sucursal created: Bizcochao Alma Rosa (AR)');
             }
 
-            // Asignar productos existentes a la sucursal 1 (Alma Rosa)
+            // Asignar productos y ventas existentes a la sucursal 1 (Alma Rosa)
             await this.dataSource.query('UPDATE productos SET "sucursalId" = $1 WHERE "sucursalId" IS NULL', [sucursal.id]);
+            await this.dataSource.query('UPDATE ventas SET "sucursalId" = $1 WHERE "sucursalId" IS NULL', [sucursal.id]);
         } catch (error) {
             console.log('Error seeding default sucursal:', error);
         }

@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { VentaItem } from './venta-item.entity';
 import { Cliente } from './cliente.entity';
+import { Sucursal } from './sucursal.entity';
 
 export type MetodoPago = "efectivo" | "tarjeta" | "transferencia" | "uberEats" | "pedidosYa";
 export type EstadoPago = "pagado" | "pendiente" | "parcial";
@@ -52,6 +53,13 @@ export class Venta {
 
     @Column({ nullable: true })
     cajeroId: string;
+
+    @Column({ nullable: true })
+    sucursalId: string | null;
+
+    @ManyToOne(() => Sucursal, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'sucursalId' })
+    sucursal: Sucursal | null;
 
     @Column({ type: 'timestamp' })
     fecha: Date;

@@ -1,12 +1,13 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { getDRDateBounds, isDateInDRHoy } from '../../utils/date.utils';
-import { Repository, Between, Like, MoreThanOrEqual, MoreThan } from 'typeorm';
+import { Repository, Between, Like, MoreThanOrEqual, MoreThan, In } from 'typeorm';
 import { Venta } from '../../entities/venta.entity';
 import { Producto } from '../../entities/producto.entity';
 import { VentaItem } from '../../entities/venta-item.entity';
 import { Cliente } from '../../entities/cliente.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { AuthUser } from '../../common/interfaces/auth-user.interface';
 
 @Injectable()
 export class VentasService {
@@ -423,12 +424,33 @@ export class VentasService {
     return this.repo.findOne({ where: { id } });
   }
 
-  async create(data: Partial<Venta>) {
+  async create(data: Partial<Venta>, user?: AuthUser) {
     if (!data.factura) {
       data.factura = `FAC-${Date.now()}`;
     }
     if (!data.fecha) {
       data.fecha = new Date();
+    }
+    if (user) {
+      if (!data.cajeroId) {
+        data.cajeroId = user.id;
+      }
+      if (!data.sucursalId && user.sucursalId) {
+        data.sucursalId = user.sucursalId;
+      }
+    }
+
+    // Si aún no tiene sucursalId, obtenerla del primer producto de la venta
+    if (!data.sucursalId && data.items && data.items.length > 0) {
+      for (const item of data.items) {
+        if (item.productoId) {
+          const producto = await this.productoRepo.findOne({ where: { id: item.productoId } });
+          if (producto?.sucursalId) {
+            data.sucursalId = producto.sucursalId;
+            break;
+          }
+        }
+      }
     }
     
     // Poblar precioCosto antes de guardar
@@ -483,7 +505,23 @@ export class VentasService {
     return { deleted: true };
   }
 
-  async getDashboardMetrics(fechaInicio?: string, fechaFin?: string, filterType: string = 'hoy') {
+  async getDashboardMetrics(
+    fechaInicio?: string, 
+    fechaFin?: string, 
+    filterType: string = 'hoy',
+    sucursalId?: string,
+    user?: AuthUser,
+  ) {
+    // Multi-sucursal scoping:
+    // Only superadmin can view metrics of all branches or choose a specific branch.
+    // Any other user (e.g. branch admin) is strictly restricted to their assigned branch.
+    let targetSucursalId: string | null = null;
+    if (user && user.role !== 'superadmin') {
+      targetSucursalId = user.sucursalId || null;
+    } else if (sucursalId && sucursalId !== 'todas') {
+      targetSucursalId = sucursalId;
+    }
+
     const now = new Date();
     const currentDRTimeMs = now.getTime() - (4 * 3600000);
     const currentDRDate = new Date(currentDRTimeMs);
@@ -503,7 +541,10 @@ export class VentasService {
     const minDate = startOfWeek < startOfYear ? startOfWeek : startOfYear;
     
     let queryOptions: any = {
-      where: { fecha: MoreThanOrEqual(minDate) },
+      where: { 
+        fecha: MoreThanOrEqual(minDate),
+        ...(targetSucursalId ? { sucursalId: targetSucursalId } : {})
+      },
       relations: ['items'],
       order: { fecha: 'DESC' }
     };
@@ -522,7 +563,10 @@ export class VentasService {
        
        if (customStart < minDate) {
            ventasCustom = await this.repo.find({
-               where: { fecha: Between(customStart, customEnd) },
+               where: { 
+                 fecha: Between(customStart, customEnd),
+                 ...(targetSucursalId ? { sucursalId: targetSucursalId } : {})
+               },
                relations: ['items']
            });
        }
@@ -535,7 +579,9 @@ export class VentasService {
         }
     });
 
-    const productos = await this.productoRepo.find();
+    const productos = await this.productoRepo.find(
+      targetSucursalId ? { where: { sucursalId: targetSucursalId } } : {}
+    );
     
     const getRatio = (v: any) => {
       if (v.estadoPago === 'pendiente') return 0;
@@ -743,15 +789,21 @@ export class VentasService {
     
     // Por Cobrar
     const pendientes = await this.repo.find({
-      where: [
-        { estadoPago: 'pendiente' },
-        { estadoPago: 'parcial' }
-      ]
+      where: targetSucursalId
+        ? [
+            { estadoPago: 'pendiente', sucursalId: targetSucursalId },
+            { estadoPago: 'parcial', sucursalId: targetSucursalId },
+          ]
+        : [
+            { estadoPago: 'pendiente' },
+            { estadoPago: 'parcial' },
+          ]
     });
     const porCobrar = pendientes.reduce((s, v) => s + Number(v.balance || 0), 0);
 
     // Ultimas ventas
     const ventasRecientes = await this.repo.find({
+        where: targetSucursalId ? { sucursalId: targetSucursalId } : {},
         order: { fecha: 'DESC' },
         take: 5,
         relations: ['cliente', 'items']
