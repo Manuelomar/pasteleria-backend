@@ -20,6 +20,9 @@ export class UserResponseDto {
     @ApiProperty({ required: false })
     vendeMateriales?: boolean;
 
+    @ApiProperty({ required: false })
+    isProvider?: boolean;
+
     @ApiProperty({ required: false, nullable: true })
     sucursalId?: string | null;
 

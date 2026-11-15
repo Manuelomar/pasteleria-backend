@@ -8,6 +8,7 @@ export interface JwtPayload {
     sub: string;
     role: string;
     sucursalId?: string | null;
+    isProvider?: boolean;
 }
 
 @Injectable()
@@ -26,6 +27,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             username: payload.username,
             role: payload.role,
             sucursalId: payload.sucursalId ?? null,
+            isProvider: payload.isProvider ?? false,
         };
     }
 }

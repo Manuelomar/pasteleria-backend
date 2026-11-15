@@ -15,6 +15,9 @@ export class UserResponseDto {
     @ApiProperty()
     role: string;
 
+    @ApiProperty({ required: false, default: false })
+    isProvider?: boolean;
+
     @ApiProperty()
     permissions: UserPermissions;
 

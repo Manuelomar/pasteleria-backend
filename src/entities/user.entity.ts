@@ -63,6 +63,9 @@ export class User {
     @Column({ default: false })
     vendeMateriales: boolean;
 
+    @Column({ default: false })
+    isProvider: boolean;
+
     @Column({ nullable: true })
     sucursalId: string | null;
 

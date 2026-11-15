@@ -55,6 +55,11 @@ export class CreateUserDto {
     @IsBoolean({ message: 'El estado activo debe ser un valor booleano' })
     activo?: boolean;
 
+    @ApiProperty({ required: false, default: false })
+    @IsOptional()
+    @IsBoolean({ message: 'El campo isProvider debe ser un valor booleano' })
+    isProvider?: boolean;
+
     @ApiProperty({ required: false, nullable: true })
     @IsOptional()
     @IsString({ message: 'El ID de sucursal debe ser texto' })

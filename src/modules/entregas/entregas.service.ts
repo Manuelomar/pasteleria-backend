@@ -77,7 +77,7 @@ export class EntregasService {
             if (!producto) {
                 throw new NotFoundException(`Producto ${item.productoId} no encontrado`);
             }
-            if (producto.proveedorId !== proveedorId && user.role !== 'admin') {
+            if (producto.proveedorId !== proveedorId && user.role !== 'admin' && user.role !== 'superadmin') {
                 throw new BadRequestException(`Producto ${producto.nombre} no pertenece al proveedor ${proveedorId}`);
             }
 

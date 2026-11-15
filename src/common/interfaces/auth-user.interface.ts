@@ -5,6 +5,7 @@ export interface AuthUser {
     username: string;
     role: UserRole;
     sucursalId?: string | null;
+    isProvider?: boolean;
 }
 
 export interface RequestWithUser {

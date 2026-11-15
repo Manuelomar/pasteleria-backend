@@ -34,7 +34,7 @@ export class UsersService {
     async findByUsername(username: string): Promise<User | null> {
         return this.usersRepository.findOne({
             where: { username, eliminado: false },
-            select: ['id', 'username', 'password', 'name', 'role', 'permissions', 'activo', 'createdAt', 'vendeMateriales', 'sucursalId'],
+            select: ['id', 'username', 'password', 'name', 'role', 'permissions', 'activo', 'createdAt', 'vendeMateriales', 'isProvider', 'sucursalId'],
             relations: ['sucursal'],
         });
     }

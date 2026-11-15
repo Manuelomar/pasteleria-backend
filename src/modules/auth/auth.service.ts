@@ -27,6 +27,7 @@ export class AuthService {
             sub: user.id,
             role: user.role,
             sucursalId: user.sucursalId ?? null,
+            isProvider: user.role === 'proveedor' || user.isProvider || false,
         };
         return {
             user: {
@@ -36,6 +37,7 @@ export class AuthService {
                 role: user.role,
                 permissions: user.permissions,
                 vendeMateriales: user.vendeMateriales,
+                isProvider: user.role === 'proveedor' || user.isProvider || false,
                 sucursalId: user.sucursalId ?? null,
                 sucursalNombre: user.sucursal?.nombre ?? null,
             },
