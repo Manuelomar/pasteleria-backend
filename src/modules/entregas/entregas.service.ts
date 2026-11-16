@@ -118,12 +118,17 @@ export class EntregasService {
             .leftJoinAndSelect('entrega.items', 'items')
             .leftJoinAndSelect('items.producto', 'producto');
         
-        if (user?.role === 'proveedor') {
-            query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
-        }
-
-        if (user && user.role !== 'superadmin' && user.sucursalId) {
-            query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+        if (user && user.role !== 'superadmin') {
+            if (user.isProvider && user.sucursalId) {
+                query.andWhere(
+                    '(entrega.sucursalId = :userSucursalId OR entrega.proveedorId = :userId)',
+                    { userSucursalId: user.sucursalId, userId: user.id }
+                );
+            } else if (user.sucursalId) {
+                query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+            } else if (user.role === 'proveedor') {
+                query.andWhere('entrega.proveedorId = :userId', { userId: user.id });
+            }
         } else if (sucursalId && sucursalId !== 'todas') {
             query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
         }
@@ -162,15 +167,17 @@ export class EntregasService {
             .leftJoinAndSelect('entrega.items', 'items')
             .leftJoinAndSelect('items.producto', 'producto');
         
-        if (user?.role === 'proveedor') {
-            query.andWhere('entrega.proveedorId = :proveedorIdUser', { proveedorIdUser: user.id });
-        } else if (proveedorId) {
-            const ids = proveedorId.split(',');
-            query.andWhere('entrega.proveedorId IN (:...ids)', { ids });
-        }
-
-        if (user && user.role !== 'superadmin' && user.sucursalId) {
-            query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+        if (user && user.role !== 'superadmin') {
+            if (user.isProvider && user.sucursalId) {
+                query.andWhere(
+                    '(entrega.sucursalId = :userSucursalId OR entrega.proveedorId = :userId)',
+                    { userSucursalId: user.sucursalId, userId: user.id }
+                );
+            } else if (user.sucursalId) {
+                query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+            } else if (user.role === 'proveedor') {
+                query.andWhere('entrega.proveedorId = :userId', { userId: user.id });
+            }
         } else if (sucursalId && sucursalId !== 'todas') {
             query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
         }

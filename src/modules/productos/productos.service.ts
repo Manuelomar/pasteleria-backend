@@ -67,15 +67,17 @@ export class ProductosService {
       queryBuilder.andWhere('producto.proveedorId IS NULL');
     }
 
-    // Filtrado por sucursal
-    if (user && user.role === 'superadmin') {
-      if (sucursalId && sucursalId !== 'todas') {
+    // Filtrado por sucursal (aplica a inventario de tienda, no restringe catálogo de proveedor)
+    if (!proveedorId || proveedorId === 'internos') {
+      if (user && user.role === 'superadmin') {
+        if (sucursalId && sucursalId !== 'todas') {
+          queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
+        }
+      } else if (user?.sucursalId) {
+        queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId: user.sucursalId });
+      } else if (sucursalId && sucursalId !== 'todas') {
         queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
       }
-    } else if (user?.sucursalId) {
-      queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId: user.sucursalId });
-    } else if (sucursalId && sucursalId !== 'todas') {
-      queryBuilder.andWhere('producto.sucursalId = :sucursalId', { sucursalId });
     }
 
     if (search) {

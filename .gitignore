@@ -23,3 +23,4 @@ cleanup_users.js
 inspect_yesterday.js
 execute_db_migration.js
 delete_duplicate_user.js
+check_status.js
