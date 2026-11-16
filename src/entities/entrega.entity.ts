@@ -1,6 +1,7 @@
 import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany, ManyToOne, JoinColumn } from 'typeorm';
 import { EntregaItem } from './entrega-item.entity';
 import { User } from './user.entity';
+import { Sucursal } from './sucursal.entity';
 
 export type EstadoEntrega = "en_espera" | "entregada";
 export type EstadoPagoEntrega = "pendiente_pago" | "pagado";
@@ -16,6 +17,13 @@ export class Entrega {
     @ManyToOne(() => User, { nullable: false, onDelete: 'CASCADE' })
     @JoinColumn({ name: 'proveedorId' })
     proveedor: User;
+
+    @Column({ nullable: true })
+    sucursalId: string | null;
+
+    @ManyToOne(() => Sucursal, { nullable: true, onDelete: 'SET NULL' })
+    @JoinColumn({ name: 'sucursalId' })
+    sucursal: Sucursal | null;
 
     @OneToMany(() => EntregaItem, item => item.entrega, { cascade: true, eager: true })
     items: EntregaItem[];

@@ -39,6 +39,21 @@ export class UsersService {
         });
     }
 
+    async findById(id: string): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { id, eliminado: false },
+            select: ['id', 'username', 'password', 'name', 'role', 'permissions', 'activo', 'createdAt', 'vendeMateriales', 'isProvider', 'sucursalId'],
+            relations: ['sucursal'],
+        });
+    }
+
+    async findSuperadmin(): Promise<User | null> {
+        return this.usersRepository.findOne({
+            where: { role: 'superadmin', eliminado: false },
+            relations: ['sucursal'],
+        });
+    }
+
     async findAll(): Promise<UserResponseDto[]> {
         const users = await this.usersRepository.find({
             where: { eliminado: false },

@@ -74,9 +74,21 @@ export class VentasController {
     @Query('productoId') productoId?: string,
     @Query('estadoPago') estadoPago?: string,
     @Query('ventaSearch') ventaSearch?: string,
+    @Query('sucursalId') sucursalId?: string,
     @Query() paginationDto?: PaginationDto,
+    @Request() req?: RequestWithUser,
   ) {
-    return this.service.getHistorialProductos(desde, hasta, productoId, paginationDto?.pageNumber, paginationDto?.pageSize, estadoPago, ventaSearch);
+    return this.service.getHistorialProductos(
+      desde, 
+      hasta, 
+      productoId, 
+      paginationDto?.pageNumber, 
+      paginationDto?.pageSize, 
+      estadoPago, 
+      ventaSearch,
+      sucursalId,
+      req?.user,
+    );
   }
 
   @Get('historial-ventas')
@@ -85,9 +97,20 @@ export class VentasController {
     @Query('hasta') hasta?: string,
     @Query('estadoPago') estadoPago?: string,
     @Query('ventaSearch') ventaSearch?: string,
+    @Query('sucursalId') sucursalId?: string,
     @Query() paginationDto?: PaginationDto,
+    @Request() req?: RequestWithUser,
   ) {
-    return this.service.getHistorialVentas(desde, hasta, estadoPago, ventaSearch, paginationDto?.pageNumber, paginationDto?.pageSize);
+    return this.service.getHistorialVentas(
+      desde, 
+      hasta, 
+      estadoPago, 
+      ventaSearch, 
+      paginationDto?.pageNumber, 
+      paginationDto?.pageSize,
+      sucursalId,
+      req?.user,
+    );
   }
 
   @Get('top-productos')

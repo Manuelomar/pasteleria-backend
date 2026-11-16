@@ -45,8 +45,11 @@ export class AuthService {
         };
     }
 
-    async getProfile(username: string): Promise<Omit<User, 'password'>> {
-        const user = await this.usersService.findByUsername(username);
+    async getProfile(identifier: string): Promise<Omit<User, 'password'>> {
+        let user = await this.usersService.findById(identifier);
+        if (!user) {
+            user = await this.usersService.findByUsername(identifier);
+        }
         if (!user) throw new UnauthorizedException('Usuario no encontrado');
         const { password, ...result } = user;
         return result;

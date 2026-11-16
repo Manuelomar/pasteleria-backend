@@ -45,62 +45,55 @@ export class SeedService implements OnApplicationBootstrap {
     }
 
     private async seedDefaultUser() {
+        const existingSuperadmin = await this.usersService.findSuperadmin();
+        if (existingSuperadmin) {
+            console.log(`Superadmin already exists (${existingSuperadmin.username}), skipping default user seed.`);
+            return;
+        }
+
+        const allUsers = await this.usersService.findAll();
+        if (allUsers.length > 0) {
+            console.log('Users already exist in database, skipping default user seed.');
+            return;
+        }
+
         const username = 'ManuelOmar';
         const password = 'Bizcochao';
-        
-        // Check for old user "Manuel Omar" and update if exists
-        const oldUser = await this.usersService.findByUsername('Manuel Omar');
-        if (oldUser) {
-            await this.usersService.remove(oldUser.id);
-            console.log('Removed old default user');
-        }
 
-        const existing = await this.usersService.findByUsername(username);
-
-        if (!existing) {
-            await this.usersService.create({
-                username: username,
-                name: 'Manuel Omar',
-                password: password,
-                role: 'superadmin',
-                sucursalId: null,
-                permissions: {
-                    clientes: true,
-                    clientes_crear: true,
-                    clientes_editar: true,
-                    clientes_eliminar: true,
-                    catalogo: true,
-                    catalogo_crear: true,
-                    catalogo_editar: true,
-                    catalogo_eliminar: true,
-                    ventas: true,
-                    ventas_crear: true,
-                    ventas_editar: true,
-                    ventas_eliminar: true,
-                    ventas_registrarPago: true,
-                    graficos: true,
-                    graficos_filtroAmbos: true,
-                    graficos_filtroConItbis: true,
-                    graficos_filtroSinItbis: true,
-                    estadoCuenta: true,
-                    estadoCuenta_exportar: true,
-                    estadoCuenta_filtros: true,
-                    entregas: true,
-                    entregas_crear: true,
-                    entregas_gestionar: true,
-                    inventario: true,
-                },
-            });
-            console.log('Default user created: ManuelOmar as superadmin');
-        } else {
-            // Update role to superadmin and password of existing ManuelOmar
-            await this.usersService.update(existing.id, {
-                password: password,
-                role: 'superadmin',
-                sucursalId: null,
-            });
-            console.log('Default user updated: ManuelOmar as superadmin');
-        }
+        await this.usersService.create({
+            username: username,
+            name: 'Manuel Omar',
+            password: password,
+            role: 'superadmin',
+            sucursalId: null,
+            permissions: {
+                clientes: true,
+                clientes_crear: true,
+                clientes_editar: true,
+                clientes_eliminar: true,
+                catalogo: true,
+                catalogo_crear: true,
+                catalogo_editar: true,
+                catalogo_eliminar: true,
+                ventas: true,
+                ventas_crear: true,
+                ventas_editar: true,
+                ventas_eliminar: true,
+                ventas_registrarPago: true,
+                graficos: true,
+                graficos_filtroAmbos: true,
+                graficos_filtroConItbis: true,
+                graficos_filtroSinItbis: true,
+                estadoCuenta: true,
+                estadoCuenta_exportar: true,
+                estadoCuenta_filtros: true,
+                entregas: true,
+                entregas_crear: true,
+                entregas_gestionar: true,
+                inventario: true,
+            },
+        });
+        console.log('Default initial superadmin user created: ManuelOmar');
     }
 
     private async seedCategorias() {

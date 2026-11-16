@@ -177,13 +177,34 @@ export class VentasService {
     };
   }
 
-  async getHistorialProductos(desde?: string, hasta?: string, productoId?: string, pageNumber: number = 1, pageSize: number = 10, estadoPagoFilter?: string, ventaSearch?: string) {
+  async getHistorialProductos(
+    desde?: string, 
+    hasta?: string, 
+    productoId?: string, 
+    pageNumber: number = 1, 
+    pageSize: number = 10, 
+    estadoPagoFilter?: string, 
+    ventaSearch?: string,
+    sucursalId?: string,
+    user?: AuthUser,
+  ) {
+    let targetSucursalId: string | null = null;
+    if (user && user.role !== 'superadmin') {
+      targetSucursalId = user.sucursalId || null;
+    } else if (sucursalId && sucursalId !== 'todas') {
+      targetSucursalId = sucursalId;
+    }
+
     const skip = (pageNumber - 1) * pageSize;
 
     const query = this.ventaItemRepo.createQueryBuilder('item')
       .leftJoinAndSelect('item.venta', 'venta')
       .leftJoinAndSelect('venta.cliente', 'cliente')
       .orderBy('venta.fecha', 'DESC');
+
+    if (targetSucursalId) {
+      query.andWhere('venta.sucursalId = :targetSucursalId', { targetSucursalId });
+    }
 
     if (desde) {
       const startDate = getDRDateBounds(desde).startDate;
@@ -217,6 +238,10 @@ export class VentasService {
     const totalsQuery = this.ventaItemRepo.createQueryBuilder('item')
       .leftJoin('item.venta', 'venta')
       .leftJoin('venta.cliente', 'cliente');
+
+    if (targetSucursalId) {
+      totalsQuery.andWhere('venta.sucursalId = :targetSucursalId', { targetSucursalId });
+    }
 
     if (desde) {
       const startDate = getDRDateBounds(desde).startDate;
@@ -334,13 +359,26 @@ export class VentasService {
     ventaSearch?: string,
     pageNumber: number = 1,
     pageSize: number = 20,
+    sucursalId?: string,
+    user?: AuthUser,
   ) {
+    let targetSucursalId: string | null = null;
+    if (user && user.role !== 'superadmin') {
+      targetSucursalId = user.sucursalId || null;
+    } else if (sucursalId && sucursalId !== 'todas') {
+      targetSucursalId = sucursalId;
+    }
+
     const skip = (pageNumber - 1) * pageSize;
 
     const query = this.repo.createQueryBuilder('venta')
       .leftJoinAndSelect('venta.cliente', 'cliente')
       .leftJoinAndSelect('venta.items', 'items')
       .orderBy('venta.fecha', 'DESC');
+
+    if (targetSucursalId) {
+      query.andWhere('venta.sucursalId = :targetSucursalId', { targetSucursalId });
+    }
 
     if (desde) {
       const startDate = getDRDateBounds(desde).startDate;

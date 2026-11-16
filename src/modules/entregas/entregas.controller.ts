@@ -3,6 +3,7 @@ import { EntregasService, CreateEntregaDto, UpdateEntregaItemsDto } from './entr
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { RequestWithUser } from '../../common/interfaces/auth-user.interface';
 
 @Controller('entregas')
 @UseGuards(JwtAuthGuard)
@@ -10,27 +11,32 @@ export class EntregasController {
     constructor(private readonly entregasService: EntregasService) {}
 
     @Post()
-    create(@Body() createEntregaDto: CreateEntregaDto, @Request() req) {
-        if (req.user.role === 'proveedor') {
+    create(@Body() createEntregaDto: CreateEntregaDto, @Request() req: RequestWithUser) {
+        if (req.user?.role === 'proveedor') {
             createEntregaDto.proveedorId = req.user.id;
         }
         return this.entregasService.create(createEntregaDto, req.user);
     }
 
     @Get()
-    findAll(@Request() req, @Query('filtro') filtro?: string) {
-        return this.entregasService.findAll(req.user, filtro);
+    findAll(
+        @Request() req: RequestWithUser,
+        @Query('filtro') filtro?: string,
+        @Query('sucursalId') sucursalId?: string,
+    ) {
+        return this.entregasService.findAll(req.user, filtro, sucursalId);
     }
 
     @Get('paged')
     findAllPaged(
         @Query() paginationDto: PaginationDto,
-        @Request() req,
+        @Request() req: RequestWithUser,
         @Query('filtro') filtro?: string,
         @Query('search') search?: string,
-        @Query('proveedorId') proveedorId?: string
+        @Query('proveedorId') proveedorId?: string,
+        @Query('sucursalId') sucursalId?: string,
     ) {
-        return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search, proveedorId);
+        return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search, proveedorId, sucursalId);
     }
 
     @Patch(':id/estado-entrega')

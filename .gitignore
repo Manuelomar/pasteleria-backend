@@ -17,3 +17,9 @@ migrate-entrega-items.js
 query-duplicates.js
 force-fix-orphans.js
 migrate-contable.js
+migrate-sucursales-isprovider.js
+check_prod.js
+cleanup_users.js
+inspect_yesterday.js
+execute_db_migration.js
+delete_duplicate_user.js

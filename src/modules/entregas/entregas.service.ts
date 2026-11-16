@@ -6,6 +6,7 @@ import { EntregaItem } from '../../entities/entrega-item.entity';
 import { Producto } from '../../entities/producto.entity';
 import { User } from '../../entities/user.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
+import { AuthUser } from '../../common/interfaces/auth-user.interface';
 
 import { IsString, IsDateString, IsArray, IsNotEmpty, IsOptional, ValidateNested, IsNumber, Min } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -45,6 +46,10 @@ export class CreateEntregaDto {
     @IsOptional()
     proveedorId: string;
 
+    @IsString()
+    @IsOptional()
+    sucursalId?: string;
+
     @IsDateString()
     @IsNotEmpty()
     fechaPrevista: Date;
@@ -66,8 +71,9 @@ export class EntregasService {
         private productoRepository: Repository<Producto>
     ) {}
 
-    async create(createEntregaDto: CreateEntregaDto, user: any) {
-        const { proveedorId, fechaPrevista, items } = createEntregaDto;
+    async create(createEntregaDto: CreateEntregaDto, user?: AuthUser) {
+        const { proveedorId, fechaPrevista, items, sucursalId } = createEntregaDto;
+        const targetSucursalId = sucursalId || user?.sucursalId || null;
         
         let totalCosto = 0;
         const entregaItems = [];
@@ -77,7 +83,7 @@ export class EntregasService {
             if (!producto) {
                 throw new NotFoundException(`Producto ${item.productoId} no encontrado`);
             }
-            if (producto.proveedorId !== proveedorId && user.role !== 'admin' && user.role !== 'superadmin') {
+            if (producto.proveedorId !== proveedorId && user?.role !== 'admin' && user?.role !== 'superadmin') {
                 throw new BadRequestException(`Producto ${producto.nombre} no pertenece al proveedor ${proveedorId}`);
             }
 
@@ -94,6 +100,7 @@ export class EntregasService {
 
         const entrega = this.entregaRepository.create({
             proveedorId,
+            sucursalId: targetSucursalId,
             fechaPrevista,
             totalCosto,
             items: entregaItems,
@@ -104,14 +111,21 @@ export class EntregasService {
         return this.entregaRepository.save(entrega);
     }
 
-    async findAll(user: any, filtro?: string) {
+    async findAll(user?: AuthUser, filtro?: string, sucursalId?: string) {
         const query = this.entregaRepository.createQueryBuilder('entrega')
             .leftJoinAndSelect('entrega.proveedor', 'proveedor')
+            .leftJoinAndSelect('entrega.sucursal', 'sucursal')
             .leftJoinAndSelect('entrega.items', 'items')
             .leftJoinAndSelect('items.producto', 'producto');
         
-        if (user.role === 'proveedor') {
+        if (user?.role === 'proveedor') {
             query.andWhere('entrega.proveedorId = :proveedorId', { proveedorId: user.id });
+        }
+
+        if (user && user.role !== 'superadmin' && user.sucursalId) {
+            query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+        } else if (sucursalId && sucursalId !== 'todas') {
+            query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
         }
         
         if (filtro && filtro !== 'todos') {
@@ -131,20 +145,34 @@ export class EntregasService {
         return query.getMany();
     }
 
-    async findAllPaged(paginationDto: PaginationDto, user: any, filtro?: string, search?: string, proveedorId?: string): Promise<PaginatedResponseDto<Entrega>> {
+    async findAllPaged(
+        paginationDto: PaginationDto,
+        user?: AuthUser,
+        filtro?: string,
+        search?: string,
+        proveedorId?: string,
+        sucursalId?: string,
+    ): Promise<PaginatedResponseDto<Entrega>> {
         const { pageNumber = 1, pageSize = 10 } = paginationDto;
         const skip = (pageNumber - 1) * pageSize;
 
         const query = this.entregaRepository.createQueryBuilder('entrega')
             .leftJoinAndSelect('entrega.proveedor', 'proveedor')
+            .leftJoinAndSelect('entrega.sucursal', 'sucursal')
             .leftJoinAndSelect('entrega.items', 'items')
             .leftJoinAndSelect('items.producto', 'producto');
         
-        if (user.role === 'proveedor') {
+        if (user?.role === 'proveedor') {
             query.andWhere('entrega.proveedorId = :proveedorIdUser', { proveedorIdUser: user.id });
         } else if (proveedorId) {
             const ids = proveedorId.split(',');
             query.andWhere('entrega.proveedorId IN (:...ids)', { ids });
+        }
+
+        if (user && user.role !== 'superadmin' && user.sucursalId) {
+            query.andWhere('entrega.sucursalId = :userSucursalId', { userSucursalId: user.sucursalId });
+        } else if (sucursalId && sucursalId !== 'todas') {
+            query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
         }
         
         if (filtro && filtro !== 'todos') {
@@ -226,9 +254,14 @@ export class EntregasService {
             }
             if (!prodProv) continue;
 
-            // Find internal product by name (case-insensitive)
+            // Find internal product by name (case-insensitive) and branch
+            const targetSucursalId = entrega.sucursalId;
             let internalProd = await this.productoRepository.findOne({
-                where: { nombre: ILike(prodProv.nombre), proveedorId: IsNull() }
+                where: {
+                    nombre: ILike(prodProv.nombre.trim()),
+                    proveedorId: IsNull(),
+                    ...(targetSucursalId ? { sucursalId: targetSucursalId } : {})
+                }
             });
 
             if (internalProd) {
@@ -261,7 +294,8 @@ export class EntregasService {
                     imagen: prodProv.imagen,
                     disponible: true,
                     cantidad: item.cantidad,
-                    proveedorId: null
+                    proveedorId: null,
+                    sucursalId: targetSucursalId || null,
                 });
                 await this.productoRepository.save(internalProd);
             }
