@@ -4,6 +4,7 @@ import { Repository, IsNull, ILike } from 'typeorm';
 import { Entrega, EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { EntregaItem } from '../../entities/entrega-item.entity';
 import { Producto } from '../../entities/producto.entity';
+import { Sucursal } from '../../entities/sucursal.entity';
 import { User } from '../../entities/user.entity';
 import { PaginationDto, PaginatedResponseDto } from '../../common/dto/pagination.dto';
 import { AuthUser } from '../../common/interfaces/auth-user.interface';
@@ -68,12 +69,22 @@ export class EntregasService {
         @InjectRepository(EntregaItem)
         private entregaItemRepository: Repository<EntregaItem>,
         @InjectRepository(Producto)
-        private productoRepository: Repository<Producto>
+        private productoRepository: Repository<Producto>,
+        @InjectRepository(Sucursal)
+        private sucursalRepository: Repository<Sucursal>,
     ) {}
 
     async create(createEntregaDto: CreateEntregaDto, user?: AuthUser) {
         const { proveedorId, fechaPrevista, items, sucursalId } = createEntregaDto;
-        const targetSucursalId = sucursalId || user?.sucursalId || null;
+        let targetSucursalId = sucursalId || user?.sucursalId || null;
+
+        if (!targetSucursalId) {
+            const defaultSucursal = await this.sucursalRepository.findOne({ where: { codigo: 'AR' } })
+                || await this.sucursalRepository.findOne({ where: { activa: true } });
+            if (defaultSucursal) {
+                targetSucursalId = defaultSucursal.id;
+            }
+        }
         
         let totalCosto = 0;
         const entregaItems = [];
