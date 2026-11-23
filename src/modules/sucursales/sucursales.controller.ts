@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Put, Patch, Param, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import { Public } from '../../decorators/public.decorator';
 import { SucursalesService } from './sucursales.service';
 import { Sucursal } from '../../entities/sucursal.entity';
 import { CreateSucursalDto } from './dto/create-sucursal.dto';
@@ -11,6 +12,16 @@ import { ClonarCatalogoDto, ClonarCatalogoResponseDto } from './dto/clonar-catal
 @Controller('sucursales')
 export class SucursalesController {
     constructor(private readonly sucursalesService: SucursalesService) {}
+
+    @Public()
+    @Get('public')
+    @ApiOperation({ summary: 'Listar sucursales activas (público, sin auth)' })
+    @ApiResponse({ status: 200, type: [Sucursal] })
+    findPublic(): Promise<Pick<Sucursal, 'id' | 'nombre' | 'codigo'>[]> {
+        return this.sucursalesService.findAll(false).then(list =>
+            list.map(({ id, nombre, codigo }) => ({ id, nombre, codigo }))
+        );
+    }
 
     @Get()
     @ApiOperation({ summary: 'Listar sucursales' })
