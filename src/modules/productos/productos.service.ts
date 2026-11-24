@@ -34,7 +34,8 @@ export class ProductosService {
     if (disponible !== undefined) {
       query.andWhere('producto.disponible = :disponible', { disponible });
     }
-    query.orderBy('producto.nombre', 'ASC');
+    query.orderBy('producto.disponible', 'DESC');
+    query.addOrderBy('producto.nombre', 'ASC');
     return query.getMany();
   }
 
@@ -101,7 +102,8 @@ export class ProductosService {
       queryBuilder.andWhere('producto.disponible = :disponible', { disponible });
     }
 
-    queryBuilder.orderBy('producto.nombre', 'ASC');
+    queryBuilder.orderBy('producto.disponible', 'DESC');
+    queryBuilder.addOrderBy('producto.nombre', 'ASC');
     queryBuilder.skip(skip);
     queryBuilder.take(sizeVal);
 
