@@ -23,8 +23,9 @@ export class EntregasController {
         @Request() req: RequestWithUser,
         @Query('filtro') filtro?: string,
         @Query('sucursalId') sucursalId?: string,
+        @Query('proveedorId') proveedorId?: string,
     ) {
-        return this.entregasService.findAll(req.user, filtro, sucursalId);
+        return this.entregasService.findAll(req.user, filtro, sucursalId, proveedorId);
     }
 
     @Get('paged')

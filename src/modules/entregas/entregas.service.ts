@@ -122,7 +122,7 @@ export class EntregasService {
         return this.entregaRepository.save(entrega);
     }
 
-    async findAll(user?: AuthUser, filtro?: string, sucursalId?: string) {
+    async findAll(user?: AuthUser, filtro?: string, sucursalId?: string, proveedorId?: string) {
         const query = this.entregaRepository.createQueryBuilder('entrega')
             .leftJoinAndSelect('entrega.proveedor', 'proveedor')
             .leftJoinAndSelect('entrega.sucursal', 'sucursal')
@@ -142,6 +142,15 @@ export class EntregasService {
             }
         } else if (sucursalId && sucursalId !== 'todas') {
             query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
+        }
+
+        if (proveedorId && proveedorId !== 'todos' && proveedorId !== 'todas') {
+            const pIds = proveedorId.split(',').map(id => id.trim()).filter(Boolean);
+            if (pIds.length === 1) {
+                query.andWhere('entrega.proveedorId = :provId', { provId: pIds[0] });
+            } else if (pIds.length > 1) {
+                query.andWhere('entrega.proveedorId IN (:...provIds)', { provIds: pIds });
+            }
         }
         
         if (filtro && filtro !== 'todos') {
@@ -191,6 +200,15 @@ export class EntregasService {
             }
         } else if (sucursalId && sucursalId !== 'todas') {
             query.andWhere('entrega.sucursalId = :sucursalId', { sucursalId });
+        }
+
+        if (proveedorId && proveedorId !== 'todos' && proveedorId !== 'todas') {
+            const pIds = proveedorId.split(',').map(id => id.trim()).filter(Boolean);
+            if (pIds.length === 1) {
+                query.andWhere('entrega.proveedorId = :provId', { provId: pIds[0] });
+            } else if (pIds.length > 1) {
+                query.andWhere('entrega.proveedorId IN (:...provIds)', { provIds: pIds });
+            }
         }
         
         if (filtro && filtro !== 'todos') {
