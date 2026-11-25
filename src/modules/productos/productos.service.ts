@@ -201,6 +201,7 @@ export class ProductosService {
       .addSelect('MAX(producto.precioCosto)', 'precioCosto')
       .addSelect('MAX(producto.precio)', 'precio')
       .addSelect('MAX(producto.precioUber)', 'precioUber')
+      .addSelect('MAX(producto.precioPedidosYa)', 'precioPedidosYa')
       .groupBy('LOWER(producto.nombre)')
       .orderBy('LOWER(producto.nombre)', 'ASC');
 
@@ -213,7 +214,8 @@ export class ProductosService {
       descripcion: row.descripcion,
       precioCosto: Number(row.precioCosto) || 0,
       precio: Number(row.precio) || 0,
-      precioUber: Number(row.precioUber) || 0
+      precioUber: Number(row.precioUber) || 0,
+      precioPedidosYa: Number(row.precioPedidosYa) || 0
     }));
   }
 }

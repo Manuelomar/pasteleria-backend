@@ -150,6 +150,7 @@ export class SucursalesService {
                 precioCosto: p.precioCosto,
                 precio: p.precio,
                 precioUber: p.precioUber,
+                precioPedidosYa: p.precioPedidosYa,
                 disponible: disponibleInicial,
                 contable: p.contable,
                 imagen: p.imagen,
