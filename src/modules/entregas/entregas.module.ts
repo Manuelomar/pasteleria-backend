@@ -6,9 +6,10 @@ import { Entrega } from '../../entities/entrega.entity';
 import { EntregaItem } from '../../entities/entrega-item.entity';
 import { Producto } from '../../entities/producto.entity';
 import { Sucursal } from '../../entities/sucursal.entity';
+import { User } from '../../entities/user.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Entrega, EntregaItem, Producto, Sucursal])],
+  imports: [TypeOrmModule.forFeature([Entrega, EntregaItem, Producto, Sucursal, User])],
   controllers: [EntregasController],
   providers: [EntregasService]
 })

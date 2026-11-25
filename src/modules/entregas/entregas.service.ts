@@ -61,6 +61,32 @@ export class CreateEntregaDto {
     items: EntregaItemDto[];
 }
 
+export class IngresoRapidoDto {
+    @IsString()
+    @IsNotEmpty()
+    proveedorId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    sucursalId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    productoId: string;
+
+    @IsNumber()
+    @Min(1)
+    cantidad: number;
+
+    @IsNumber()
+    @IsOptional()
+    precioCosto?: number;
+
+    @IsString()
+    @IsOptional()
+    estadoPago?: EstadoPagoEntrega;
+}
+
 @Injectable()
 export class EntregasService {
     constructor(
@@ -72,7 +98,130 @@ export class EntregasService {
         private productoRepository: Repository<Producto>,
         @InjectRepository(Sucursal)
         private sucursalRepository: Repository<Sucursal>,
+        @InjectRepository(User)
+        private userRepository: Repository<User>,
     ) {}
+
+    async ingresoRapido(dto: IngresoRapidoDto, user?: AuthUser) {
+        if (!user || (user.role !== 'admin' && user.role !== 'superadmin')) {
+            throw new BadRequestException('Solo administradores pueden realizar ingreso rápido de stock');
+        }
+
+        const sucursal = await this.sucursalRepository.findOne({ where: { id: dto.sucursalId } });
+        if (!sucursal) {
+            throw new NotFoundException('Sucursal no encontrada');
+        }
+
+        const proveedor = await this.userRepository.findOne({ where: { id: dto.proveedorId } });
+        if (!proveedor) {
+            throw new NotFoundException('Proveedor no encontrado');
+        }
+
+        // Producto de referencia
+        const refProd = await this.productoRepository.findOne({ where: { id: dto.productoId } });
+        if (!refProd) {
+            throw new NotFoundException('Producto no encontrado');
+        }
+
+        // Buscar producto interno en la sucursal de destino
+        let internalProd = await this.productoRepository.findOne({
+            where: {
+                nombre: ILike(refProd.nombre.trim()),
+                proveedorId: IsNull(),
+                sucursalId: dto.sucursalId,
+            }
+        });
+
+        // Buscar producto del proveedor si existe en su catálogo
+        const prodProv = await this.productoRepository.findOne({
+            where: {
+                nombre: ILike(refProd.nombre.trim()),
+                proveedorId: dto.proveedorId,
+            }
+        });
+
+        // Determinar costo unitario
+        let costoUnitario = Number(dto.precioCosto);
+        if (isNaN(costoUnitario) || costoUnitario <= 0) {
+            costoUnitario = prodProv ? Number(prodProv.precioCosto) : Number(refProd.precioCosto || 0);
+        }
+
+        // Actualizar o crear producto interno en la sucursal
+        if (internalProd) {
+            internalProd.cantidad = (internalProd.cantidad || 0) + dto.cantidad;
+            if (internalProd.contable !== false) {
+                internalProd.disponible = true;
+            }
+            if (costoUnitario > 0 && Number(internalProd.precioCosto) !== costoUnitario) {
+                if (!internalProd.historialCostos) {
+                    internalProd.historialCostos = [];
+                }
+                internalProd.historialCostos.push(Number(internalProd.precioCosto));
+                internalProd.precioCosto = costoUnitario;
+            }
+            await this.productoRepository.save(internalProd);
+        } else {
+            internalProd = this.productoRepository.create({
+                nombre: refProd.nombre,
+                categoria: refProd.categoria,
+                tipo: refProd.tipo,
+                precioCosto: costoUnitario,
+                precio: prodProv?.precio || refProd.precio || 0,
+                precioUber: refProd.precioUber || 0,
+                descripcion: refProd.descripcion,
+                imagen: refProd.imagen,
+                disponible: true,
+                cantidad: dto.cantidad,
+                contable: refProd.contable ?? true,
+                proveedorId: null,
+                sucursalId: dto.sucursalId,
+            });
+            await this.productoRepository.save(internalProd);
+        }
+
+        // Si el proveedor maneja stock de este producto, deducir
+        if (prodProv) {
+            if (prodProv.contable !== false) {
+                prodProv.cantidad = Math.max(0, (prodProv.cantidad || 0) - dto.cantidad);
+                prodProv.disponible = prodProv.cantidad > 0;
+            } else {
+                prodProv.cantidad = Math.max(0, (prodProv.cantidad || 0) - dto.cantidad);
+            }
+            await this.productoRepository.save(prodProv);
+        }
+
+        // Crear la Entrega
+        const totalCosto = costoUnitario * dto.cantidad;
+        const fechaHoy = new Date();
+        const estadoPago: EstadoPagoEntrega = dto.estadoPago || 'pendiente_pago';
+
+        const entrega = this.entregaRepository.create({
+            proveedorId: dto.proveedorId,
+            sucursalId: dto.sucursalId,
+            fechaPrevista: fechaHoy,
+            fechaReal: fechaHoy,
+            totalCosto,
+            estadoEntrega: 'entregada',
+            estadoPago,
+            agregadoAlStock: true,
+        });
+        const savedEntrega = await this.entregaRepository.save(entrega);
+
+        // Crear el EntregaItem
+        const entregaItem = this.entregaItemRepository.create({
+            entregaId: savedEntrega.id,
+            productoId: prodProv?.id || internalProd.id,
+            nombre: internalProd.nombre,
+            cantidad: dto.cantidad,
+            precioCosto: costoUnitario,
+        });
+        await this.entregaItemRepository.save(entregaItem);
+
+        return {
+            entrega: savedEntrega,
+            producto: internalProd,
+        };
+    }
 
     async create(createEntregaDto: CreateEntregaDto, user?: AuthUser) {
         const { proveedorId, fechaPrevista, items, sucursalId } = createEntregaDto;

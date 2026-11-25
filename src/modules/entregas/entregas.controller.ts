@@ -1,5 +1,5 @@
-import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, Query } from '@nestjs/common';
-import { EntregasService, CreateEntregaDto, UpdateEntregaItemsDto } from './entregas.service';
+import { Controller, Get, Post, Body, Param, Patch, Delete, UseGuards, Request, Query, ForbiddenException } from '@nestjs/common';
+import { EntregasService, CreateEntregaDto, UpdateEntregaItemsDto, IngresoRapidoDto } from './entregas.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { EstadoEntrega, EstadoPagoEntrega } from '../../entities/entrega.entity';
 import { PaginationDto } from '../../common/dto/pagination.dto';
@@ -38,6 +38,17 @@ export class EntregasController {
         @Query('sucursalId') sucursalId?: string,
     ) {
         return this.entregasService.findAllPaged(paginationDto, req.user, filtro, search, proveedorId, sucursalId);
+    }
+
+    @Post('ingreso-rapido')
+    async ingresoRapido(
+        @Body() dto: IngresoRapidoDto,
+        @Request() req: RequestWithUser
+    ) {
+        if (req.user?.role !== 'admin' && req.user?.role !== 'superadmin') {
+            throw new ForbiddenException('Solo administradores pueden realizar ingreso rápido de stock');
+        }
+        return this.entregasService.ingresoRapido(dto, req.user);
     }
 
     @Patch(':id/estado-entrega')
