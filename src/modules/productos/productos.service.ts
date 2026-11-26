@@ -129,13 +129,12 @@ export class ProductosService {
     }
 
     if (data.nombre) {
-      const existing = await this.repo.findOne({ 
-        where: { 
-          nombre: ILike(data.nombre),
-          proveedorId: data.proveedorId || IsNull(),
-          sucursalId: data.sucursalId || IsNull(),
-        } 
-      });
+      data.nombre = data.nombre.trim();
+      const query = this.repo.createQueryBuilder('p')
+        .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: data.nombre })
+        .andWhere(data.proveedorId ? 'p.proveedorId = :provId' : 'p.proveedorId IS NULL', { provId: data.proveedorId })
+        .andWhere(data.sucursalId ? 'p.sucursalId = :sucId' : 'p.sucursalId IS NULL', { sucId: data.sucursalId });
+      const existing = await query.getOne();
       if (existing) {
         throw new BadRequestException("Ya existe un producto con este nombre en el catálogo de esta sucursal.");
       }
@@ -157,17 +156,19 @@ export class ProductosService {
       current = await this.findOne(id);
     }
 
+    if (data.nombre) {
+      data.nombre = data.nombre.trim();
+    }
+
     if (data.nombre && current) {
-      if (current.nombre !== data.nombre) {
+      if (current.nombre.trim() !== data.nombre) {
         const targetSucursalId = data.sucursalId !== undefined ? data.sucursalId : current.sucursalId;
-        const existing = await this.repo.findOne({ 
-          where: { 
-            nombre: ILike(data.nombre),
-            proveedorId: current.proveedorId || IsNull(),
-            sucursalId: targetSucursalId || IsNull(),
-            id: Not(id)
-          } 
-        });
+        const query = this.repo.createQueryBuilder('p')
+          .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: data.nombre })
+          .andWhere(current.proveedorId ? 'p.proveedorId = :provId' : 'p.proveedorId IS NULL', { provId: current.proveedorId })
+          .andWhere(targetSucursalId ? 'p.sucursalId = :sucId' : 'p.sucursalId IS NULL', { sucId: targetSucursalId })
+          .andWhere('p.id != :id', { id });
+        const existing = await query.getOne();
         if (existing) {
           throw new BadRequestException("Ya existe un producto con este nombre en el catálogo de esta sucursal.");
         }

@@ -123,22 +123,47 @@ export class EntregasService {
             throw new NotFoundException('Producto no encontrado');
         }
 
-        // Buscar producto interno en la sucursal de destino
-        let internalProd = await this.productoRepository.findOne({
-            where: {
-                nombre: ILike(refProd.nombre.trim()),
-                proveedorId: IsNull(),
-                sucursalId: dto.sucursalId,
-            }
-        });
+        const trimmedName = refProd.nombre.trim();
 
-        // Buscar producto del proveedor si existe en su catálogo
-        const prodProv = await this.productoRepository.findOne({
-            where: {
-                nombre: ILike(refProd.nombre.trim()),
-                proveedorId: dto.proveedorId,
+        // 1. Si refProd ya es el producto interno de la sucursal de destino, usarlo directamente
+        let internalProd: Producto | null = null;
+        if (!refProd.proveedorId && refProd.sucursalId === dto.sucursalId) {
+            internalProd = refProd;
+        }
+
+        // 2. Buscar por nombre normalizado (TRIM + LOWER) en la sucursal
+        const matchingInternalProds = await this.productoRepository.createQueryBuilder('p')
+            .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: trimmedName })
+            .andWhere('p.proveedorId IS NULL')
+            .andWhere('p.sucursalId = :sucursalId', { sucursalId: dto.sucursalId })
+            .orderBy('p.createdAt', 'ASC')
+            .getMany();
+
+        if (matchingInternalProds.length > 0) {
+            if (!internalProd) {
+                internalProd = matchingInternalProds[0];
             }
-        });
+            // Consolidar duplicados si existieran
+            const duplicates = matchingInternalProds.filter(p => p.id !== internalProd!.id);
+            for (const dup of duplicates) {
+                internalProd.cantidad = (internalProd.cantidad || 0) + (dup.cantidad || 0);
+                await this.entregaItemRepository.manager.query(
+                    `UPDATE venta_items SET "productoId" = $1 WHERE "productoId" = $2`,
+                    [internalProd.id, dup.id]
+                );
+                await this.entregaItemRepository.manager.query(
+                    `UPDATE entrega_items SET "productoId" = $1 WHERE "productoId" = $2`,
+                    [internalProd.id, dup.id]
+                );
+                await this.productoRepository.delete(dup.id);
+            }
+        }
+
+        // Buscar producto del proveedor si existe en su catálogo con coincidencia flexible
+        const prodProv = await this.productoRepository.createQueryBuilder('p')
+            .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: trimmedName })
+            .andWhere('p.proveedorId = :provId', { provId: dto.proveedorId })
+            .getOne();
 
         // Determinar costo unitario
         let costoUnitario = Number(dto.precioCosto);
@@ -148,9 +173,10 @@ export class EntregasService {
 
         // Actualizar o crear producto interno en la sucursal
         if (internalProd) {
+            internalProd.nombre = trimmedName;
             internalProd.cantidad = (internalProd.cantidad || 0) + dto.cantidad;
             if (internalProd.contable !== false) {
-                internalProd.disponible = true;
+                internalProd.disponible = internalProd.cantidad > 0;
             }
             if (costoUnitario > 0 && Number(internalProd.precioCosto) !== costoUnitario) {
                 if (!internalProd.historialCostos) {
@@ -162,7 +188,7 @@ export class EntregasService {
             await this.productoRepository.save(internalProd);
         } else {
             internalProd = this.productoRepository.create({
-                nombre: refProd.nombre,
+                nombre: trimmedName,
                 categoria: refProd.categoria,
                 tipo: refProd.tipo,
                 precioCosto: costoUnitario,
@@ -429,34 +455,52 @@ export class EntregasService {
         for (const item of entrega.items) {
             let prodProv = item.producto;
             if (!prodProv && item.nombre) {
-                const found = await this.productoRepository.findOne({
-                    where: { nombre: ILike(item.nombre.trim()), proveedorId: entrega.proveedorId }
-                });
-                if (found) {
-                    prodProv = found;
-                    item.producto = found;
-                    item.productoId = found.id;
+                prodProv = await this.productoRepository.createQueryBuilder('p')
+                    .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: item.nombre.trim() })
+                    .andWhere('p.proveedorId = :provId', { provId: entrega.proveedorId })
+                    .getOne();
+                if (prodProv) {
+                    item.producto = prodProv;
+                    item.productoId = prodProv.id;
                 }
             }
             if (!prodProv) continue;
 
-            // Find internal product by name (case-insensitive) and branch
+            // Find internal product by normalized name and branch
             const targetSucursalId = entrega.sucursalId;
-            let internalProd = await this.productoRepository.findOne({
-                where: {
-                    nombre: ILike(prodProv.nombre.trim()),
-                    proveedorId: IsNull(),
-                    ...(targetSucursalId ? { sucursalId: targetSucursalId } : {})
+            const trimmedName = prodProv.nombre.trim();
+
+            const matchingInternalProds = await this.productoRepository.createQueryBuilder('p')
+                .where('TRIM(LOWER(p.nombre)) = TRIM(LOWER(:nombre))', { nombre: trimmedName })
+                .andWhere('p.proveedorId IS NULL')
+                .andWhere(targetSucursalId ? 'p.sucursalId = :sucursalId' : 'p.sucursalId IS NULL', { sucursalId: targetSucursalId })
+                .orderBy('p.createdAt', 'ASC')
+                .getMany();
+
+            let internalProd: Producto | null = null;
+            if (matchingInternalProds.length > 0) {
+                internalProd = matchingInternalProds[0];
+                const duplicates = matchingInternalProds.filter(p => p.id !== internalProd!.id);
+                for (const dup of duplicates) {
+                    internalProd.cantidad = (internalProd.cantidad || 0) + (dup.cantidad || 0);
+                    await this.entregaItemRepository.manager.query(
+                        `UPDATE venta_items SET "productoId" = $1 WHERE "productoId" = $2`,
+                        [internalProd.id, dup.id]
+                    );
+                    await this.entregaItemRepository.manager.query(
+                        `UPDATE entrega_items SET "productoId" = $1 WHERE "productoId" = $2`,
+                        [internalProd.id, dup.id]
+                    );
+                    await this.productoRepository.delete(dup.id);
                 }
-            });
+            }
 
             if (internalProd) {
-                internalProd.cantidad += item.cantidad;
+                internalProd.nombre = trimmedName;
+                internalProd.cantidad = (internalProd.cantidad || 0) + item.cantidad;
                 
-                if (internalProd.cantidad > 0) {
-                    if (internalProd.contable !== false) {
-                        internalProd.disponible = true;
-                    }
+                if (internalProd.contable !== false) {
+                    internalProd.disponible = internalProd.cantidad > 0;
                 }
                 
                 // Actualizar historial de costos si el costo cambió
@@ -471,7 +515,7 @@ export class EntregasService {
                 await this.productoRepository.save(internalProd);
             } else {
                 internalProd = this.productoRepository.create({
-                    nombre: prodProv.nombre,
+                    nombre: trimmedName,
                     categoria: prodProv.categoria,
                     tipo: prodProv.tipo,
                     precioCosto: prodProv.precioCosto,
